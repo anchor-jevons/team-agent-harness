@@ -1,0 +1,56 @@
+{
+  "date": "2026-09-25",
+  "codex_version": "0.154.0-alpha.6.2",
+  "discovery": {
+    "tool": "codex debug prompt-input",
+    "execution": "outside enclosing sandbox after sandbox denied local diagnostic",
+    "cases": [
+      {
+        "cwd": "repo-name",
+        "output_received": true,
+        "root_instructions_present": true,
+        "repo_skill_present": true,
+        "domain_body_autoloaded": false
+      },
+      {
+        "cwd": "repo-name/project-name",
+        "output_received": true,
+        "root_instructions_present": true,
+        "repo_skill_present": true,
+        "domain_body_autoloaded": false
+      },
+      {
+        "cwd": "repo-name-task-a",
+        "output_received": true,
+        "root_instructions_present": true,
+        "repo_skill_present": true,
+        "domain_body_autoloaded": false
+      },
+      {
+        "cwd": "repo-name-task-a/project-name",
+        "output_received": true,
+        "root_instructions_present": true,
+        "repo_skill_present": true,
+        "domain_body_autoloaded": false
+      }
+    ]
+  },
+  "git_collaboration": {
+    "conflicting_decisions_in_distinct_files_merge_cleanly": true,
+    "duplicate_numeric_adr_ids_survive_merge": "observed before main checkout: 0001-sync.md and 0001-events.md",
+    "project_cwd_resolves_current_worktree": true,
+    "linked_dotgit_is_file": true,
+    "uncommitted_file_not_in_worktree": true,
+    "claim_in_worktree_not_seen_in_original": true,
+    "squashed_source_commit_not_ancestor": true,
+    "squashed_changes_present": true
+  },
+  "limitations": [
+    "No model API calls or skill execution",
+    "No live workspace-write permission check",
+    "No GitLab remote or MR operations",
+    "No installed skills or real project configuration changed",
+    "Skills discovery tested with unique sentinel name; final team skill package not implemented"
+  ],
+  "publication_note": "Sanitized observation summary; temporary fixture and raw prompt input are not distributed."
+}
