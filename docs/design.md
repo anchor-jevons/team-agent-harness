@@ -122,9 +122,9 @@ Codex 官方文档说明：全局 `~/.codex` 的 `AGENTS.override.md`/`AGENTS.md
 
 Ticket 的仓库相对路径是标识，例如 `.scratch/user-login-a3f9c2/issues/01-b71e04-login-api.md`。Feature 目录和 ticket 文件名都带创建时生成的 6 位随机串（rand6）。v4 的“追加票使用未占用编号”和“slug 仓库内唯一”只能在本地 worktree 检查，与被否掉的“ADR 最大号 +1”是同类缺陷：两条分支各加一个 `03-*.md`，或同时建 `.scratch/user-login/`，都能干净合并并静默混在一起。随机串让冲突概率可以忽略，不依赖人工协调；`NN` 只保留为阅读顺序。所有引用统一写仓库相对路径（可同时给出相对链接），以便 `git grep` 反查依赖。
 
-最小正文：Owner、Status、What to build、验收条件；Spec、Branch、Since、Blocked by、Context、Handoff 和可选的 MR 引用按模板填写。Owner 与 Status 只在 ticket 中维护；`MR:` 仅为指向 GitLab MR 的引用，审核与合并仍在 MR 中进行。Owner 使用 team.md 名册中的成员 ID，不能从 git 配置或目录名猜测真实任务负责人。
+最小正文：Owner、Status、What to build、验收条件；Confirmed-by、Spec、Branch、Since、Blocked by、Context、Handoff 和可选的 MR 引用按模板填写。Owner 与 Status 只在 ticket 中维护；`MR:` 仅为指向 GitLab MR 的引用，审核与合并仍在 MR 中进行。Owner 使用 team.md 名册中的成员 ID，不能从 git 配置或目录名猜测真实任务负责人；未经人指定时写 `None`，agent 不代填。
 
-执行状态：`draft`（默认）、`ready-for-agent`、`in-progress`、`blocked`、`implemented`、`dropped`。新票默认 draft，只有人能确认为 ready-for-agent 或标为 dropped，避免拆票结果被当作已审核。缺信息时保持 draft 或标 blocked 并写明原因。in-progress 必须写 `Branch:` 与 `Since:`，使 main 或其他分支上看到的状态能找到对应分支；超过团队约定天数没有推送视为陈旧，由人确认或改派。`implemented` 只表示所记录分支实现及约定验证完成；MR 打回时回到 in-progress，审核/合并结果查看 MR。状态词也不证明前置依赖已经在当前分支可用。
+执行状态：`draft`（默认）、`ready-for-agent`、`in-progress`、`blocked`、`implemented`、`dropped`。新票默认 draft，只有人能确认为 ready-for-agent 或标为 dropped，避免拆票结果被当作已审核。用户在会话中点名某张票并确认时，agent 可以代写该状态并记录 `Confirmed-by:`；未点名的“go ahead”不算确认。缺信息时保持 draft 或标 blocked 并写明原因。in-progress 必须写 `Branch:` 与 `Since:`，使 main 或其他分支上看到的状态能找到对应分支；超过团队约定天数没有推送视为陈旧，由人确认或改派。`implemented` 只表示所记录分支实现及约定验证完成；MR 打回时回到 in-progress，审核/合并结果查看 MR。状态词也不证明前置依赖已经在当前分支可用。
 
 同一个 feature 多人并行时，先由 feature 负责人提交只含 spec 与拆票的规划 MR 合入目标分支，作为共享基线，再分别修改各自 ticket。简单且清楚的小修复可以按直接请求开工，交付前补最小 ticket；不强制为它制造独立 spec 或 grill 流程。只做探索时 journal 可以引用主题和已有材料，不虚构就绪任务。
 

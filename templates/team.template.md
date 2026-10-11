@@ -10,7 +10,7 @@
 
 ## 分工
 
-任务状态与负责人只记录在 Markdown ticket 中，不使用 GitLab Issue。每张 ticket 由人明确主要负责人，并由人把 draft 确认为 ready-for-agent。Agent 执行指定任务；本地 Owner/Status 不作为跨分支的抢票锁。查看其他分支在途工作用 `docs/agents/issue-tracker.md` 中的只读查询，只报告，不认领。
+任务状态与负责人只记录在 Markdown ticket 中，不使用 GitLab Issue。每张 ticket 由人明确主要负责人（未指定前 `Owner: None`），并由人把 draft 确认为 ready-for-agent；确认的判定与记录见 tracker。Agent 执行指定任务；本地 Owner/Status 不作为跨分支的抢票锁。查看其他分支在途工作用 `docs/agents/issue-tracker.md` 中的只读查询，只报告，不认领。
 
 同一 feature 多人并行时，先由 feature 负责人提交一个只含 spec 与拆票的规划 MR 合入目标分支，作为共享基线；之后各自从该基线开分支，只修改自己负责的 ticket。公共需求或领域定义变化在 MR 中说明对其他任务的影响。改派时由人更新 Owner，原负责人在 Handoff 中留下最近 journal。
 

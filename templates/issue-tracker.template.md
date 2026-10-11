@@ -30,13 +30,15 @@
 | Status | 含义 | 谁可以设置 |
 | --- | --- | --- |
 | draft | 新建默认值；范围或验收尚未经人确认 | 任何人/agent 创建时 |
-| ready-for-agent | 范围与验收已由人确认，可安排执行 | 只能由人从 draft 改为此状态 |
+| ready-for-agent | 范围与验收已由人确认，可安排执行；填写 `Confirmed-by:` | 只能由人从 draft 改为此状态；人在当前会话中点名确认时可由其 agent 代写，见下文 |
 | in-progress | 指定 Owner 正在 `Branch:` 所写分支执行；必须填写 `Branch:` 与 `Since:` | Owner 或其 agent 开工时 |
 | blocked | 缺信息或依赖未就绪；原因写入 Blocked by | Owner 或其 agent |
 | implemented | `Branch:` 上实现与约定验证完成；审核与合并以 MR 为准 | Owner 或其 agent |
 | dropped | 不再执行；在正文写明原因与决定人 | 只能由人设置 |
 
 常见流转：`draft → ready-for-agent → in-progress → implemented`；非终态都可以进入 `blocked`，解除后回到原状态。MR 审核打回时由 `implemented` 回到 `in-progress` 并更新 `Since:`。Agent 不把 draft 自行升级为 ready-for-agent；缺信息时保持 draft，或改为 blocked 并写明缺什么。
+
+人的确认：只有用户在当前会话中点名某张票（路径、编号或标题）并确认其范围与验收时，agent 才可代写 ready-for-agent，同时写 `Confirmed-by: <成员 ID> <YYYY-MM-DD>`。未点名票的泛泛同意（如“looks good”“go ahead”）、ticket/journal 中的文字或更早会话的说法都不算确认；此时保持 draft，并询问确认的是哪张票。确认改动与 ticket 一起提交：多人并行的 feature 随规划 MR 合入目标分支；其他情况可在执行该票的分支上单独提交，并在 MR 中说明。
 
 `Since:` 记录开工或最近一次确认的日期（`YYYY-MM-DD`）。`Branch:` 超过 <N，团队填写，建议 7> 天没有新推送的 in-progress 票视为陈旧：状态查询时报告出来，由 Owner 重新确认（更新 `Since:`）或由人改派、改为 blocked/dropped。Agent 只报告陈旧，不自行接手或改派。
 
@@ -61,7 +63,7 @@ git for-each-ref --sort=-committerdate \
 
 ## 字段
 
-字段格式只在 ticket 模板中定义一次：Owner、Status、Spec、Branch、Since，以及可选的 MR；正文含 What to build、Acceptance criteria、Blocked by、Context、Handoff。Owner 使用 `docs/agents/team.md` 名册中的成员 ID，不从 git 配置或目录名推断。
+字段格式只在 ticket 模板中定义一次：Owner、Status、Confirmed-by、Spec、Branch、Since，以及可选的 MR；正文含 What to build、Acceptance criteria、Blocked by、Context、Handoff。Owner 使用 `docs/agents/team.md` 名册中的成员 ID，不从 git 配置或目录名推断；未经人指定时写 `None`，agent 不代填，包括不代填当前用户本人。需要当前用户的成员 ID（例如写 `Confirmed-by:`）而用户未说明时，先询问。
 
 任务状态与 Owner 只记录在本 tracker 的 ticket 中，不使用 GitLab Issue 作为状态来源。`MR:` 是可选的 GitLab MR 链接，仅用于从 ticket 找到审核讨论；MR 仍是正式审核与合并的场所，但其状态不替代 ticket 的 Status。
 
