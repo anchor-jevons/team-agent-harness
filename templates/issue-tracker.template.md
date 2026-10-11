@@ -44,18 +44,20 @@
 
 ## 跨分支只读状态查询
 
-需要了解其他分支上的在途票时，运行：
+需要了解其他分支上的在途票时，在 worktree 根目录运行：
 
 ```bash
 git fetch --prune origin
 git grep -n -E '^(Owner|Status|Branch|Since):' \
-  $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/*' | grep -v '/HEAD$') \
-  -- .scratch ':(exclude).scratch/_done'
+  $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/' | grep -v '/HEAD$') \
+  -- '.scratch/*/issues/*.md' ':(exclude).scratch/_done'
 git for-each-ref --sort=-committerdate \
-  --format='%(committerdate:short) %(refname:short)' 'refs/remotes/origin/*'
+  --format='%(committerdate:short) %(refname:short)' 'refs/remotes/origin/'
 ```
 
-第一条列出每个远端分支上的票头字段，第二条给出各分支最近提交日期，用于判断陈旧。结果只用于向用户报告，不用于认领、改派或修改其他分支；未推送的本地工作不会出现在结果中。
+`'refs/remotes/origin/'` 是前缀匹配，包含 `feature/...` 等带 `/` 的分支；写成 `'refs/remotes/origin/*'` 会漏掉它们。第一条列出每个远端分支上的票头字段，第二条给出各分支最近提交日期，用于判断陈旧。旧分支上可能留有其他票的过时副本，以票的 `Branch:` 所写分支上的内容为准。
+
+`docs/agents/scripts/ticket-status [N]` 对同样的数据做汇总：每张 in-progress 票一行，列出 Owner、Branch、Since、分支最近提交日期，并标记 STALE 或分支未推送。结果只用于向用户报告，不用于认领、改派或修改其他分支；未推送的本地工作不会出现在结果中。
 
 ## 字段
 

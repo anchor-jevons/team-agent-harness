@@ -19,6 +19,7 @@
 | [Ticket](ticket.template.md) | `.scratch/<feature-slug>-<rand6>/issues/<NN>-<rand6>-<ticket-slug>.md` |
 | [ADR](adr.template.md) | `docs/adr/<YYYY-MM-DD>-<rand6>-<topic>.md` |
 | [Journal](journal.template.md) | `docs/journal/<member-id>/<YYYY-MM-DD>-<rand6>-<topic>.md` |
+| [票状态汇总脚本](scripts/ticket-status) | `docs/agents/scripts/ticket-status`（保留可执行权限） |
 
 `<rand6>` 是 6 位小写十六进制随机串，生成与引用规则只在[本地 tracker](issue-tracker.template.md#标识) 中定义。Journal 字段只在 journal 模板中定义。
 
