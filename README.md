@@ -73,7 +73,7 @@ repo-name/
 
 - `docs/`：最终设计、独立审查、待决定的 ADR、验证边界与来源。
 - `templates/`：待按目标项目调整的文档模板；不包含技能实现或安装器。
-- `scripts/check_docs.py`：本仓库的 Markdown 相对链接与模板必需字段检查，由 GitHub Actions 运行。
+- `scripts/check_docs.py`：本仓库的 Markdown 相对链接与模板必需字段检查。`scripts/docs-check.workflow.yml` 是对应的 GitHub Actions 工作流，复制到 `.github/workflows/` 即可启用（推送工作流文件需要具备 `workflow` 权限的账号）。
 - `AGENTS.md`：维护本设计仓库的规则；目标工程的入口模板在 `templates/`。
 
 ## 来源与声明

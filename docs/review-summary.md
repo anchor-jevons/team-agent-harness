@@ -58,7 +58,7 @@ Agent 能力 reviewer 对综合设计再次复核，确认关键问题已在设�
 | §2-6、§5-7 成员身份与生命周期 | team 模板增加成员名册；新增 `.scratch/_done/` 归档规则；入口要求搜索排除归档与 journal |
 | §3 规划基线 | team 模板写明多人并行前先合入只含 spec 与拆票的规划 MR |
 | §4、§5-8 验证计划 | validation.md 改为试点计划：通过标准、模型场景至少 5 次重复、记录读取文件与 token；补充 R1–R8 风险场景与 3 人以上并发；新增[入组检查模板](../templates/onboarding.template.md) |
-| 先前意见：无 CI | 新增 `scripts/check_docs.py` 与 GitHub Actions，只检查链接、锚点、模板字段和个人路径 |
+| 先前意见：无 CI | 新增 `scripts/check_docs.py` 与工作流文件 `scripts/docs-check.workflow.yml`，只检查链接、锚点、模板字段和个人路径；工作流需移入 `.github/workflows/` 才启用 |
 
 ### 暂缓或需要决定
 

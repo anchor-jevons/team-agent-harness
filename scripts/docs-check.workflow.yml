@@ -1,3 +1,4 @@
+# 启用方式：复制到 .github/workflows/docs-check.yml
 name: docs-check
 
 on:

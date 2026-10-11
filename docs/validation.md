@@ -54,7 +54,7 @@
 
 ## 结构检查
 
-`scripts/check_docs.py` 检查本仓库所有 Markdown 的相对链接与标题锚点是否存在，模板是否包含必需字段（例如 ticket 的 Spec/Branch/Since、默认 `Status: draft`，ADR 的 Supersedes/Superseded by），以及发布内容中是否出现个人绝对路径；GitHub Actions 在 push 与 PR 时运行。它只验证文档结构，不验证上述任何试点或模型行为。
+`scripts/check_docs.py` 检查本仓库所有 Markdown 的相对链接与标题锚点是否存在，模板是否包含必需字段（例如 ticket 的 Spec/Branch/Since、默认 `Status: draft`，ADR 的 Supersedes/Superseded by），以及发布内容中是否出现个人绝对路径；对应的 GitHub Actions 工作流放在 `scripts/docs-check.workflow.yml`，复制到 `.github/workflows/` 后在 push 与 PR 时运行，目前尚未启用。它只验证文档结构，不验证上述任何试点或模型行为。
 
 ## 未实施
 
