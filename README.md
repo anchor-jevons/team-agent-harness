@@ -51,6 +51,21 @@ repo-name/
 
 文件按需创建。已有工程规范直接复用。根目录只保留领域索引，项目层保存当前有效的领域词汇表。
 
+## 一键部署
+
+`install.sh` 把规则与模板按[目标路径](templates/README.md)部署到目标 Git 仓库：在新分支 `chore/agent-harness` 上提交（不推送），不覆盖已有文件，并在 `docs/agents/HARNESS-VERSION` 记录来源 ref 与提交 SHA。`team-*` skills 尚未实现，因此只部署规则与模板。
+
+```bash
+# 从本地克隆运行（目标默认为当前目录所在仓库，可在子目录运行）
+/path/to/team-agent-harness/install.sh --dry-run
+/path/to/team-agent-harness/install.sh --members "alice:alice-gl,bob:bob-gl" --test-cmd "pytest -q" /path/to/project
+
+# 远程一行命令（在目标仓库内运行）
+curl -fsSL https://raw.githubusercontent.com/anchor-jevons/team-agent-harness/main/install.sh | bash -s -- --dry-run
+```
+
+远程方式从 `main` 获取脚本，合入 `main` 后可用；合入前把 URL 中的 `main` 换成分支名，并加 `--ref <分支>` 获取同一版本的模板。选项、安全规则与部署后的检查见[模板说明](templates/README.md#一键部署)。
+
 ## 核心约定
 
 - 所有 harness 路径锚定到当前 worktree 根目录；构建和测试在项目目录执行。
@@ -72,7 +87,8 @@ repo-name/
 ## 目录内容
 
 - `docs/`：最终设计、独立审查、ADR、验证边界与来源。
-- `templates/`：待按目标项目调整的文档模板；不包含技能实现或安装器。
+- `templates/`：待按目标项目调整的文档模板；不包含技能实现。
+- `install.sh`：把规则与模板部署到目标仓库的脚本，见[一键部署](#一键部署)。
 - `AGENTS.md`：维护本设计仓库的规则；目标工程的入口模板在 `templates/`。
 
 ## 来源与声明
