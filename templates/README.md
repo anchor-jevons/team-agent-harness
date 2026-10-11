@@ -21,6 +21,8 @@
 | [Journal](journal.template.md) | `docs/journal/<member-id>/<YYYY-MM-DD>-<rand6>-<topic>.md` |
 | [票状态汇总脚本](scripts/ticket-status) | `docs/agents/scripts/ticket-status`（保留可执行权限） |
 
+Spec、Ticket、ADR、Journal 四个模板另外原样复制到目标仓库的 `docs/agents/templates/`（保留文件名与字段，只按项目调整占位说明），作为目标仓库中这些文件格式的唯一定义；其他规则提到的“ticket 模板”“journal 模板”“ADR 模板”都指那里的文件。上表右列是按模板新建的文件所在位置。
+
 `<rand6>` 是 6 位小写十六进制随机串，生成与引用规则只在[本地 tracker](issue-tracker.template.md#标识) 中定义。Journal 字段只在 journal 模板中定义。
 
 没有领域术语时，无需创建 map/CONTEXT 空壳；首次产生定义时两者同时落地。小任务可以只有 ticket。ADR 与 journal 按实际工作产生。新建 ticket 默认 `Status: draft`、`Owner: None`，由人确认后改为 ready-for-agent 并记录 `Confirmed-by:`。

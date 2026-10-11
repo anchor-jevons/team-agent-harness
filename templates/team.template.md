@@ -22,7 +22,7 @@
 
 ## 记录
 
-关键问答与确认及时写入 spec；术语和决策按 `domain.md` 维护。阶段记录由 `team-record-session` 按 journal 模板保存，不能保证会话突然退出时完成收尾。
+关键问答与确认及时写入 spec；术语和决策按 `domain.md` 维护。阶段记录由 `team-record-session` 按 journal 模板（`docs/agents/templates/journal.template.md`）保存；未安装该技能时按同一模板手写。两种方式都不能保证会话突然退出时完成收尾。
 
 ## 合并
 

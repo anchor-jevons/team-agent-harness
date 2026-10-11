@@ -63,7 +63,7 @@ git for-each-ref --sort=-committerdate \
 
 ## 字段
 
-字段格式只在 ticket 模板中定义一次：Owner、Status、Confirmed-by、Spec、Branch、Since，以及可选的 MR；正文含 What to build、Acceptance criteria、Blocked by、Context、Handoff。Owner 使用 `docs/agents/team.md` 名册中的成员 ID，不从 git 配置或目录名推断；未经人指定时写 `None`，agent 不代填，包括不代填当前用户本人。需要当前用户的成员 ID（例如写 `Confirmed-by:`）而用户未说明时，先询问。
+字段格式只在 ticket 模板（`docs/agents/templates/ticket.template.md`）中定义一次：Owner、Status、Confirmed-by、Spec、Branch、Since，以及可选的 MR；正文含 What to build、Acceptance criteria、Blocked by、Context、Handoff。Owner 使用 `docs/agents/team.md` 名册中的成员 ID，不从 git 配置或目录名推断；未经人指定时写 `None`，agent 不代填，包括不代填当前用户本人。需要当前用户的成员 ID（例如写 `Confirmed-by:`）而用户未说明时，先询问。
 
 任务状态与 Owner 只记录在本 tracker 的 ticket 中，不使用 GitLab Issue 作为状态来源。`MR:` 是可选的 GitLab MR 链接，仅用于从 ticket 找到审核讨论；MR 仍是正式审核与合并的场所，但其状态不替代 ticket 的 Status。
 

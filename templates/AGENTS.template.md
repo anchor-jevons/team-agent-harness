@@ -17,7 +17,7 @@
 - 接手指定 ticket 时，读取该票、关联 spec（如有）、Context 与 Handoff；核对当前代码和依赖。
 - 实现或 review 前，读取 `docs/development.md` 中适用的工程规范。
 - 领域语义与架构决策相关工作，按 `docs/agents/domain.md` 查阅 map、相关术语和 ADR。
-- 关键确认及时写入对应正文；有实质进展并准备暂停、交接或交付时使用已安装的 `team-record-session`。
+- 关键确认及时写入对应正文；有实质进展并准备暂停、交接或交付时使用已安装的 `team-record-session`。未安装时按 `docs/agents/templates/journal.template.md` 手写 journal 到 `docs/journal/<member-id>/`，并在相关 ticket 的 Handoff 追加一行。
 
 ## Priority and trust
 
