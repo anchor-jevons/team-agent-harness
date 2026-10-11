@@ -1,0 +1,16 @@
+name: docs-check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Markdown links and template fields
+        run: python3 scripts/check_docs.py
