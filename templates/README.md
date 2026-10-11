@@ -13,11 +13,15 @@
 | [协作约定](team.template.md) | `docs/agents/team.md` |
 | [本地 tracker](issue-tracker.template.md) | `docs/agents/issue-tracker.md` |
 | [领域文档规则](domain.template.md) | `docs/agents/domain.md` |
-| [Spec](spec.template.md) | `.scratch/<feature>/spec.md` |
-| [Ticket](ticket.template.md) | `.scratch/<feature>/issues/<NN>-<ticket>.md` |
-| [ADR](adr.template.md) | `docs/adr/<date>-<unique-id>-<topic>.md` |
-| [Journal](journal.template.md) | `docs/journal/<member>/<date>-<topic>-<unique-id>.md` |
+| [入组检查](onboarding.template.md) | `docs/agents/onboarding.md` |
+| [Skills README](skills-README.template.md) | `.agents/skills/README.md` |
+| [Spec](spec.template.md) | `.scratch/<feature-slug>-<rand6>/spec.md` |
+| [Ticket](ticket.template.md) | `.scratch/<feature-slug>-<rand6>/issues/<NN>-<rand6>-<ticket-slug>.md` |
+| [ADR](adr.template.md) | `docs/adr/<YYYY-MM-DD>-<rand6>-<topic>.md` |
+| [Journal](journal.template.md) | `docs/journal/<member-id>/<YYYY-MM-DD>-<rand6>-<topic>.md` |
 
-没有领域术语时，无需创建 map/CONTEXT 空壳；首次产生定义时两者同时落地。小任务可以只有 ticket。ADR 与 journal 按实际工作产生。
+`<rand6>` 是 6 位小写十六进制随机串，生成与引用规则只在[本地 tracker](issue-tracker.template.md#标识) 中定义。Journal 字段只在 journal 模板中定义。
+
+没有领域术语时，无需创建 map/CONTEXT 空壳；首次产生定义时两者同时落地。小任务可以只有 ticket。ADR 与 journal 按实际工作产生。新建 ticket 默认 `Status: draft`，由人确认后改为 ready-for-agent。
 
 后续接入前完成[设计中的适配清单](../docs/design.md#必须进入团队版本的兼容修正)与[真实试点](../docs/validation.md)。

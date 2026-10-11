@@ -1,7 +1,12 @@
-# <NN>: <Ticket title>
+# <Ticket title>
 
-Owner: <负责人>
-Status: ready-for-agent
+Owner: <成员 ID，见 docs/agents/team.md 名册>
+Status: draft
+Spec: <spec 引用（仓库相对路径）；没有则写 None>
+Branch: <in-progress 时必填：工作分支名；其他状态可保留最近分支或写 None>
+Since: <in-progress 时必填：YYYY-MM-DD，开工或最近确认日期；否则写 None>
+Issue: <可选：GitLab Issue 链接；没有则删除本行>
+MR: <可选：GitLab MR 链接；没有则删除本行>
 
 ## What to build
 
@@ -13,12 +18,12 @@ Status: ready-for-agent
 
 ## Blocked by
 
-<依赖票的相对链接及实际阻塞原因；没有则写 None。>
+<依赖票的仓库相对路径及实际阻塞原因；Status 为 blocked 时必填；没有则写 None。>
 
 ## Context
 
-<相关 spec、领域文档与 ADR 链接；没有则省略本节。>
+<相关领域文档与 ADR 引用（仓库相对路径）；没有则省略本节。>
 
 ## Handoff
 
-<最近相关 journal 的相对链接；尚无记录则省略本节。>
+<每份相关 journal 追加一行仓库相对路径，不改旧行；尚无记录则省略本节。>

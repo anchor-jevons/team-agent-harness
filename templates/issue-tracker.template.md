@@ -2,24 +2,71 @@
 
 路径以当前 worktree 根目录为基准：
 
-- 功能：`.scratch/<feature-slug>/`。
+- 功能：`.scratch/<feature-slug>-<rand6>/`。
 - 需求：该目录下的 `spec.md`，小任务可省略。
-- 任务：`issues/<NN>-<ticket>.md`，每张票一个文件。
+- 任务：`issues/<NN>-<rand6>-<ticket-slug>.md`，每张票一个文件。
+- 已归档：`.scratch/_done/<feature-slug>-<rand6>/`，见“归档”。
 
-完整仓库相对路径是任务标识。Feature slug 在仓库内唯一，NN 只在当前功能内唯一。由 feature 负责人协调初始编号，新增票不重排旧编号。
+## 标识
+
+`<rand6>` 是创建时生成的 6 位小写十六进制随机串，例如 `openssl rand -hex 3` 或 `python3 -c "import secrets; print(secrets.token_hex(3))"`。生成后用 `git ls-files | grep <rand6>` 确认当前 worktree 未占用；跨分支无法保证全局检查，唯一性依靠随机性（约 1677 万种取值），不依靠“未占用编号”。
+
+- 新建 feature 目录必须带随机后缀；两条分支各自创建 `user-login` 时得到不同目录，不会静默混入同一目录。
+- `NN` 只表示 feature 内的建议阅读顺序，可以重复，不作为标识；新增票不重排旧文件。
+- 任务标识是仓库相对路径，例如 `.scratch/user-login-a3f9c2/issues/01-b71e04-login-api.md`。唯一性来自 `<rand6>`。
+
+## 引用形式
+
+所有 ticket、spec、ADR、journal 之间的引用统一写仓库相对路径，便于用 `git grep <路径或 rand6>` 反查“谁引用了我”：
+
+```markdown
+[.scratch/user-login-a3f9c2/issues/01-b71e04-login-api.md](../../user-login-a3f9c2/issues/01-b71e04-login-api.md)
+```
+
+链接文字写仓库相对路径，链接目标写按所在文件解析的相对路径；只写其中一种时，以仓库相对路径为准。代码入口由接手时重新发现，不维护源码路径清单。
 
 ## 执行状态
 
-| Status | 含义 |
-| --- | --- |
-| ready-for-agent | 范围与验收已明确，可安排执行 |
-| in-progress | 指定负责人正在当前工作分支执行 |
-| implemented | 当前分支实现和约定验证完成 |
+| Status | 含义 | 谁可以设置 |
+| --- | --- | --- |
+| draft | 新建默认值；范围或验收尚未经人确认 | 任何人/agent 创建时 |
+| ready-for-agent | 范围与验收已由人确认，可安排执行 | 只能由人从 draft 改为此状态 |
+| in-progress | 指定 Owner 正在 `Branch:` 所写分支执行；必须填写 `Branch:` 与 `Since:` | Owner 或其 agent 开工时 |
+| blocked | 缺信息或依赖未就绪；原因写入 Blocked by | Owner 或其 agent |
+| implemented | `Branch:` 上实现与约定验证完成；审核与合并以 MR 为准 | Owner 或其 agent |
+| dropped | 不再执行；在正文写明原因与决定人 | 只能由人设置 |
 
-阻塞原因与依赖写入 Blocked by；开工前核对依赖实现是否在当前分支可用。审核和合并以 MR 为准。
+常见流转：`draft → ready-for-agent → in-progress → implemented`；非终态都可以进入 `blocked`，解除后回到原状态。MR 审核打回时由 `implemented` 回到 `in-progress` 并更新 `Since:`。Agent 不把 draft 自行升级为 ready-for-agent；缺信息时保持 draft，或改为 blocked 并写明缺什么。
 
-最小字段：Owner、Status、What to build、验收条件。Spec、Context、Blocked by 与 Handoff 按需补充。导航引用使用相对链接，代码入口由接手时重新发现。
+`Since:` 记录开工或最近一次确认的日期（`YYYY-MM-DD`）。`Branch:` 超过 <N，团队填写，建议 7> 天没有新推送的 in-progress 票视为陈旧：状态查询时报告出来，由 Owner 重新确认（更新 `Since:`）或由人改派、改为 blocked/dropped。Agent 只报告陈旧，不自行接手或改派。
 
-“发布到本地 tracker”表示写文件；不创建远端 Issue。团队版技能的原有标签操作应改为写上述 Status。没有独立 triage-labels 配置，也不采用 wayfinder 的自动认领流程。
+状态写在分支上，main 上通常只能看到合入前的规划状态与合入后的结果；Owner 不是锁，Status 也不证明前置依赖已在当前分支可用。开工前核对依赖的实际实现。
+
+## 跨分支只读状态查询
+
+需要了解其他分支上的在途票时，运行：
+
+```bash
+git fetch --prune origin
+git grep -n -E '^(Owner|Status|Branch|Since):' \
+  $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/*' | grep -v '/HEAD$') \
+  -- .scratch ':(exclude).scratch/_done'
+git for-each-ref --sort=-committerdate \
+  --format='%(committerdate:short) %(refname:short)' 'refs/remotes/origin/*'
+```
+
+第一条列出每个远端分支上的票头字段，第二条给出各分支最近提交日期，用于判断陈旧。结果只用于向用户报告，不用于认领、改派或修改其他分支；未推送的本地工作不会出现在结果中。
+
+## 字段
+
+字段格式只在 ticket 模板中定义一次：Owner、Status、Spec、Branch、Since，以及可选的 Issue、MR；正文含 What to build、Acceptance criteria、Blocked by、Context、Handoff。Owner 使用 `docs/agents/team.md` 名册中的成员 ID，不从 git 配置或目录名推断。
+
+`Issue:`/`MR:` 是可选的 GitLab 链接，便于从 ticket 找到远端讨论和审核。任务状态以 GitLab 还是 Markdown 为准尚未决定，见设计仓库的 proposed ADR；采用前不要让两处状态互相矛盾。
+
+“发布到本地 tracker”表示写文件。团队版技能的原有标签操作应改为写上述 Status。没有独立 triage-labels 配置，也不采用 wayfinder 的自动认领流程。
+
+## 归档
+
+Feature 的票全部为 implemented（且 MR 已合并）或 dropped 后，在后续 MR 中用 `git mv` 移到 `.scratch/_done/`，目录名不变，并修正指向它的相对链接。旧的仓库相对路径引用可用 `git ls-files | grep <rand6>` 定位。日常代码搜索排除 `.scratch/_done/` 和 `docs/journal/`。
 
 清楚的小修复可直接按请求执行，交付前补最小 ticket；纯探索可只留 journal，不伪造就绪任务。

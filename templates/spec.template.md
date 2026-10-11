@@ -1,6 +1,6 @@
 # <Feature>
 
-Owner: <负责人>
+Owner: <成员 ID，见 docs/agents/team.md 名册>
 
 ## Problem
 
@@ -20,7 +20,7 @@ Owner: <负责人>
 
 ## Decisions and validation
 
-<相关 ADR/领域文档链接，以及验证思路。>
+<相关 ADR/领域文档引用（仓库相对路径），以及验证思路。>
 
 ## Out of scope
 
