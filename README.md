@@ -75,3 +75,12 @@ repo-name/
 灵感与方法来自 [Matt Pocock skills](https://github.com/mattpocock/skills)、[Trellis](https://github.com/mindfold-ai/Trellis) 和 Matt 的 [AGENTS.md 指南](https://www.aihero.dev/a-complete-guide-to-agents-md)。本项目为独立设计讨论的整理，未分发上游完整技能或 Trellis 运行时代码，也不代表上游官方方案。
 
 公开版本整理日期：2026-09-26。源代码与行为研究使用固定版本，具体边界见[来源](docs/references.md)和[验证记录](docs/validation.md)。
+
+## 许可证与上游归属
+
+本仓库的设计文档与模板以 [MIT License](LICENSE) 发布（Copyright (c) 2026 Jevons Chang / anchor-jevons）。
+
+- mattpocock/skills：研究提交 `c55ee46` 的 `LICENSE` 为 MIT（Copyright (c) 2026 Matt Pocock）。本仓库只引用和概括其方法，未复制技能正文。目标项目若把上游技能复制并适配为 `team-*`，需随技能保留上游版权与许可声明，记录方式见 [skills README 模板](templates/skills-README.template.md)。
+- Trellis：研究提交 `e77ae89` 的 `LICENSE` 为 AGPL-3.0。本仓库只借鉴其组织思路（共享规范、任务上下文、个人 journal、知识回写），未包含其代码或模板文本；不要把 Trellis 的代码或文件复制进按 MIT 发布的材料。
+
+许可证信息于 2026-10-10 在上述固定提交核对，详见[来源](docs/references.md)。

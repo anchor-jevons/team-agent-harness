@@ -7,6 +7,7 @@
 - 仓库：[mattpocock/skills](https://github.com/mattpocock/skills)
 - 研究提交：`c55ee46073ed923f86ce59a5eb3b6d895095d1b7`，研究时 package/plugin 版本为 `1.2.3`。
 - [固定版本源码](https://github.com/mattpocock/skills/tree/c55ee46073ed923f86ce59a5eb3b6d895095d1b7)
+- 许可证：MIT，Copyright (c) 2026 Matt Pocock（[固定提交的 LICENSE](https://github.com/mattpocock/skills/blob/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/LICENSE)，2026-10-10 核对）。复制技能正文时需保留该声明。
 - [AGENTS.md 完全指南](https://www.aihero.dev/a-complete-guide-to-agents-md)
 - [本地 tracker 模板](https://github.com/mattpocock/skills/blob/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/engineering/setup-matt-pocock-skills/issue-tracker-local.md)
 - [领域建模](https://github.com/mattpocock/skills/blob/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/engineering/domain-modeling/SKILL.md)
@@ -22,12 +23,13 @@
 - 仓库：[mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis)
 - 研究提交：`e77ae89f648a78d5859fa2e8ac314655898421a5`，研究时 CLI 版本为 `0.6.17`。
 - [固定版本源码](https://github.com/mindfold-ai/Trellis/tree/e77ae89f648a78d5859fa2e8ac314655898421a5)
+- 许可证：AGPL-3.0（[固定提交的 LICENSE](https://github.com/mindfold-ai/Trellis/blob/e77ae89f648a78d5859fa2e8ac314655898421a5/LICENSE)，2026-10-10 核对）。本仓库不包含其代码或模板文本。
 
 本设计借鉴共享规范、任务上下文、个人 journal 和知识回写的组织方式；没有引入其 CLI、hooks、任务状态脚本或 channel 调度体系。
 
 ## Codex 官方资料
 
-- [AGENTS.md 发现与分层](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+- [AGENTS.md 发现与分层](https://learn.chatgpt.com/docs/agent-configuration/agents-md)：全局 `~/.codex` 下 `AGENTS.override.md` 优先于 `AGENTS.md`；项目内从根到 cwd 逐层拼接，每层 `AGENTS.override.md` 优先于 `AGENTS.md`，越靠近 cwd 越靠后、优先级越高（2026-10-10 读取官方页面，未在本仓库实测）。
 - [Skills 发现、调用与同名处理](https://learn.chatgpt.com/docs/build-skills)
 - [CLI 参数，包括 add-dir](https://learn.chatgpt.com/docs/developer-commands)
 - [Worktrees](https://learn.chatgpt.com/docs/environments/git-worktrees)
