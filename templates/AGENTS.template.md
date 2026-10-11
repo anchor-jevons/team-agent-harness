@@ -8,7 +8,7 @@
 - 用 `git rev-parse --show-toplevel` 确定当前 worktree 根目录。
 - `.scratch/`、`docs/`、`.agents/` 和 `CONTEXT-MAP.md` 路径均相对该根目录。
 - Markdown 相对链接按所在文件解析；使用当前 worktree 的材料。
-- 搜索代码时排除 `.scratch/_done/` 与 `docs/journal/`，例如 `rg <词> -g '!.scratch/_done/**' -g '!docs/journal/**'`；任务需要历史时再查。
+- 搜索代码时排除 `.scratch/_done/` 与 `docs/journal/`，例如 `git grep -n <词> -- ':(top)' ':(top,exclude).scratch/_done' ':(top,exclude)docs/journal'`；在任意子目录运行都搜索整个 worktree（包括 `.scratch/` 中的在途材料），只搜已跟踪文件，需要包含新建未提交文件时加 `--untracked`。任务需要历史时再查。
 
 ## Working context
 
