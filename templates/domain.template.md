@@ -12,6 +12,6 @@
 
 ## ADR
 
-重要且有真实取舍的架构决策写入根 `docs/adr/`。文件名采用日期、唯一标识与主题，创建时检查未占用；引用完整相对路径。
+重要且有真实取舍的架构决策写入根 `docs/adr/<YYYY-MM-DD>-<rand6>-<topic>.md`，rand6 生成与引用形式见 `docs/agents/issue-tracker.md`；引用写仓库相对路径。
 
-草稿可以修订；已接受的实质决策变化使用新 ADR 并链接替代关系。分支里的状态词不代表 MR 已批准。合并前检查与目标基线及相关实现的语义一致性。
+状态与替代关系按 ADR 模板：proposed 草稿可以修订；accepted 的实质变化使用新 ADR，新旧文件分别写 `Supersedes:` 与 `Superseded by:`，旧 ADR 改为 superseded。分支里的状态词不代表 MR 已批准。合并前检查与目标基线及相关实现的语义一致性。
