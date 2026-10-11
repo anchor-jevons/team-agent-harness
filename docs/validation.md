@@ -52,10 +52,6 @@
 
 另需确认团队最低 Codex 版本，以及桌面端与 IDE 入口的发现行为；现有探测只覆盖 `codex-cli 0.154.0-alpha.6.2`。
 
-## 结构检查
-
-`scripts/check_docs.py` 检查本仓库所有 Markdown 的相对链接与标题锚点是否存在，模板是否包含必需字段（例如 ticket 的 Spec/Branch/Since、默认 `Status: draft`，ADR 的 Supersedes/Superseded by），以及发布内容中是否出现个人绝对路径；对应的 GitHub Actions 工作流放在 `scripts/docs-check.workflow.yml`，复制到 `.github/workflows/` 后在 push 与 PR 时运行，目前尚未启用。它只验证文档结构，不验证上述任何试点或模型行为。
-
 ## 未实施
 
 可安装的 team-* 技能、自动日志 hooks、真实项目端到端执行、GitLab 权限与 MR 流程均未实施或验证。本仓库发布只交付设计、审查和参考模板。

@@ -5,8 +5,7 @@ Status: draft
 Spec: <spec 引用（仓库相对路径）；没有则写 None>
 Branch: <in-progress 时必填：工作分支名；其他状态可保留最近分支或写 None>
 Since: <in-progress 时必填：YYYY-MM-DD，开工或最近确认日期；否则写 None>
-Issue: <可选：GitLab Issue 链接；没有则删除本行>
-MR: <可选：GitLab MR 链接；没有则删除本行>
+MR: <可选：GitLab MR 链接，仅作引用；没有则删除本行>
 
 ## What to build
 

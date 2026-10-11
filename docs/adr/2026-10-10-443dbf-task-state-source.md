@@ -1,11 +1,16 @@
 # 任务状态以 GitLab Issue/MR 还是仓库 Markdown 为准
 
-Status: proposed
+Status: accepted
 Date: 2026-10-10
+Decided: 2026-10-10，由 Jevons 决定
 Supersedes: None
 Superseded by: None
 
-本 ADR 记录一个尚未决定的设计问题，等待 Jevons 确认。在决定之前，当前设计（Markdown ticket 为任务材料与状态的唯一位置）保持不变；ticket 模板只增加了可选的 `Issue:`/`MR:` 字段，两种方案下都可以使用。
+## 决定
+
+采用方案 A：纯 Markdown。任务状态（Status）与负责人（Owner）只记录在仓库内的 Markdown ticket 中，不使用 GitLab Issue 作为状态来源。Ticket 可以带可选的 `MR:` 字段，但它只是指向 GitLab MR 的引用；GitLab MR 仍按原设计承担正式审核与合并，MR 的状态不替代 ticket 的 Status。
+
+2026-10-10 由 Jevons 在 PR 评审中决定。以下方案与分析作为决策背景保留。
 
 ## 背景
 
@@ -38,15 +43,10 @@ Owner、Status、spec、验收、Context 全部在 `.scratch/` 中，随分支�
 - 优点：复用 GitLab 解决可见性与改派，同时保留需求的版本化和同 MR 审查。
 - 代价：Owner/状态有两个可能的来源，需要明确哪一处权威，避免互相矛盾；agent 读取远端状态需要额外权限，或只由人维护远端字段。
 
-## 待决定
-
-1. 选择 A、B 或 C。
-2. 若选 C：ticket 中 `Owner:`/`Status:` 是删除、保留为镜像，还是只保留规划语义；谁负责创建 Issue 与链接。
-3. Agent 是否获得 GitLab 读取（或写入）权限；没有权限时只由人维护远端字段。
-4. 是否需要在试点中先用 A 运行一轮，再比较 C 的实际收益。
-
 ## 影响
 
-- 选 A：保持本次修订后的设计，无需进一步改动。
-- 选 B 或 C：需要修改 `templates/issue-tracker.template.md`、`templates/ticket.template.md`、`templates/team.template.md` 与设计中“任务与进度语义”一节，并增加相应试点场景。
-- 无论哪种方案，正式审核与合并仍以 GitLab MR 为准。
+- 保持 2026-10 修订后的设计：随机 ID、状态机、`Branch:`/`Since:`、陈旧规则与跨分支只读查询共同弥补在途状态只存在于分支上的问题。
+- Ticket 模板不含 `Issue:` 字段；`MR:` 为可选引用。Tracker、team 模板与设计“任务与进度语义”一节已按此统一。
+- Agent 不需要 GitLab API 权限来读写任务状态。
+- 方案 A 的代价（人数增加后跨分支可见性变差）仍然存在；若试点显示不可接受，再用新 ADR 替代本决定。
+- 正式审核与合并仍以 GitLab MR 为准。

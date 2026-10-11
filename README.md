@@ -8,7 +8,7 @@
 
 - 一个 Git 仓库中包含一个项目子目录，成员可能从任一层打开 Codex。
 - 多人使用 feature branches 和 worktrees 并行开发。
-- 使用内部 GitLab 托管代码与 MR；任务当前选择本地 Markdown tracker，随 Git 共享（是否改由 GitLab Issue 承担状态见 [proposed ADR](docs/adr/2026-10-10-443dbf-task-state-source.md)）。
+- 使用内部 GitLab 托管代码与 MR；任务状态与负责人只记录在本地 Markdown tracker，随 Git 共享，不使用 GitLab Issue（见 [ADR](docs/adr/2026-10-10-443dbf-task-state-source.md)）。
 - 希望共享 grill 问答、领域术语、ADR、tickets 和个人 AI 工作摘要。
 
 这里的 GitLab 是方案的团队运行环境；本 GitHub 仓库用于公开设计与模板。
@@ -17,7 +17,7 @@
 
 1. [完整设计与最终目录](docs/design.md)
 2. [审查发现与采用的修正](docs/review-summary.md)
-3. [待决定的 ADR](docs/adr/2026-10-10-443dbf-task-state-source.md)
+3. [ADR：任务状态来源](docs/adr/2026-10-10-443dbf-task-state-source.md)
 4. [验证结果与试点计划](docs/validation.md)
 5. [参考模板与目标路径](templates/README.md)
 6. [上游资料、版本与许可证](docs/references.md)
@@ -71,9 +71,8 @@ repo-name/
 
 ## 目录内容
 
-- `docs/`：最终设计、独立审查、待决定的 ADR、验证边界与来源。
+- `docs/`：最终设计、独立审查、ADR、验证边界与来源。
 - `templates/`：待按目标项目调整的文档模板；不包含技能实现或安装器。
-- `scripts/check_docs.py`：本仓库的 Markdown 相对链接与模板必需字段检查。`scripts/docs-check.workflow.yml` 是对应的 GitHub Actions 工作流，复制到 `.github/workflows/` 即可启用（推送工作流文件需要具备 `workflow` 权限的账号）。
 - `AGENTS.md`：维护本设计仓库的规则；目标工程的入口模板在 `templates/`。
 
 ## 来源与声明

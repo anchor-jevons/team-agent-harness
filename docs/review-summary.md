@@ -47,7 +47,7 @@ Agent 能力 reviewer 对综合设计再次复核，确认关键问题已在设�
 | 先前意见：ADR 与 journal 命名顺序不一致 | 统一为 `<YYYY-MM-DD>-<rand6>-<topic>`，rand6 生成方式只在 tracker 模板定义 |
 | 先前意见：ticket 缺 Spec、ADR 缺替代关系 | Ticket 增加 `Spec:`；ADR 模板写明 proposed/accepted/superseded 与 `Supersedes:`/`Superseded by:` |
 | 先前意见：team 模板引用的 `.agents/skills/README.md` 没有模板 | 新增 [skills README 模板](../templates/skills-README.template.md)，含上游 SHA、许可证、名称映射、升级流程 |
-| §5-1 任务状态放 GitLab 还是 Markdown | 新增 [proposed ADR](adr/2026-10-10-443dbf-task-state-source.md) 列出三种方案与混合建议；ticket 增加可选 `Issue:`/`MR:`。**未改变现有设计，待 Jevons 决定** |
+| §5-1 任务状态放 GitLab 还是 Markdown | 新增 [ADR](adr/2026-10-10-443dbf-task-state-source.md) 列出三种方案与评审的混合建议；2026-10-10 Jevons 决定采用纯 Markdown（accepted）。Owner 与状态只在 ticket 中维护，不使用 GitLab Issue；ticket 只保留可选的 `MR:` 引用。评审的混合建议未采纳 |
 | §2-1、§5-2 ticket/feature 编号跨分支冲突 | Feature 目录与 ticket 文件名带 rand6；NN 只表示阅读顺序 |
 | §2-2、§3、§5-3 状态机 | 新增 draft（默认）、blocked、dropped；in-progress 必填 `Branch:`/`Since:`；只有人能把 draft 改为 ready-for-agent；陈旧规则（天数由团队填写，建议 7）；MR 打回回到 in-progress |
 | §5-4 跨分支可见性 | Tracker 增加基于 `git fetch`/`git grep` 的只读状态查询，只用于报告，不用于认领 |
@@ -58,11 +58,10 @@ Agent 能力 reviewer 对综合设计再次复核，确认关键问题已在设�
 | §2-6、§5-7 成员身份与生命周期 | team 模板增加成员名册；新增 `.scratch/_done/` 归档规则；入口要求搜索排除归档与 journal |
 | §3 规划基线 | team 模板写明多人并行前先合入只含 spec 与拆票的规划 MR |
 | §4、§5-8 验证计划 | validation.md 改为试点计划：通过标准、模型场景至少 5 次重复、记录读取文件与 token；补充 R1–R8 风险场景与 3 人以上并发；新增[入组检查模板](../templates/onboarding.template.md) |
-| 先前意见：无 CI | 新增 `scripts/check_docs.py` 与工作流文件 `scripts/docs-check.workflow.yml`，只检查链接、锚点、模板字段和个人路径；工作流需移入 `.github/workflows/` 才启用 |
 
-### 暂缓或需要决定
+### 暂缓、拒绝或待试点
 
-- **任务状态来源（§5-1）**：A/B/C 方案待 Jevons 在 [proposed ADR](adr/2026-10-10-443dbf-task-state-source.md) 中决定；选 B/C 后再改 tracker、ticket、team 模板。
+- **CI 检查（先前意见）**：Jevons 拒绝了加入 CI 的建议，本仓库不设 CI；链接与模板一致性按 AGENTS.md 在修改后人工检查。
 - **陈旧天数与最低 Codex 版本**：模板留空由团队填写；建议值 7 天未经试点验证。
 - **公开可复现 fixture（§5-8）**：原临时 fixture 不在本仓库；新 fixture 随试点一起提交，本次未编写。
 - **归档后路径变化**：移入 `_done/` 会改变仓库相对路径，当前以 rand6 定位旧引用；是否可接受需试点确认。

@@ -59,9 +59,9 @@ git for-each-ref --sort=-committerdate \
 
 ## 字段
 
-字段格式只在 ticket 模板中定义一次：Owner、Status、Spec、Branch、Since，以及可选的 Issue、MR；正文含 What to build、Acceptance criteria、Blocked by、Context、Handoff。Owner 使用 `docs/agents/team.md` 名册中的成员 ID，不从 git 配置或目录名推断。
+字段格式只在 ticket 模板中定义一次：Owner、Status、Spec、Branch、Since，以及可选的 MR；正文含 What to build、Acceptance criteria、Blocked by、Context、Handoff。Owner 使用 `docs/agents/team.md` 名册中的成员 ID，不从 git 配置或目录名推断。
 
-`Issue:`/`MR:` 是可选的 GitLab 链接，便于从 ticket 找到远端讨论和审核。任务状态以 GitLab 还是 Markdown 为准尚未决定，见设计仓库的 proposed ADR；采用前不要让两处状态互相矛盾。
+任务状态与 Owner 只记录在本 tracker 的 ticket 中，不使用 GitLab Issue 作为状态来源。`MR:` 是可选的 GitLab MR 链接，仅用于从 ticket 找到审核讨论；MR 仍是正式审核与合并的场所，但其状态不替代 ticket 的 Status。
 
 “发布到本地 tracker”表示写文件。团队版技能的原有标签操作应改为写上述 Status。没有独立 triage-labels 配置，也不采用 wayfinder 的自动认领流程。
 

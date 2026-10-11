@@ -8,7 +8,7 @@
 
 目标：团队共享规则和流程；开发与跟踪指定任务；每位成员留下可获取的 AI 开发摘要；方便跨人接手和 MR review。环境：公司内部 GitLab 托管代码与 MR；一仓库、一项目子目录；成员可从仓库根或项目目录启动 Codex，支持多个 worktree。
 
-第一版以 Git + Markdown + Matt 方法技能为基础，借用 Trellis 的按任务读取上下文、个人工作日志和知识回写。提供分支快照与阶段记录；实时抢票、完整聊天审计、崩溃自动留痕不在这套轻量机制的能力内。任务状态是否改由 GitLab Issue/MR 承担尚未决定，见 [proposed ADR](adr/2026-10-10-443dbf-task-state-source.md)。
+第一版以 Git + Markdown + Matt 方法技能为基础，借用 Trellis 的按任务读取上下文、个人工作日志和知识回写。提供分支快照与阶段记录；实时抢票、完整聊天审计、崩溃自动留痕不在这套轻量机制的能力内。任务状态与 Owner 只记录在 Markdown ticket 中，不以 GitLab Issue 作为状态来源，见 [ADR](adr/2026-10-10-443dbf-task-state-source.md)。
 
 ## 从第一性原理推导
 
@@ -122,13 +122,13 @@ Codex 官方文档说明：全局 `~/.codex` 的 `AGENTS.override.md`/`AGENTS.md
 
 Ticket 的仓库相对路径是标识，例如 `.scratch/user-login-a3f9c2/issues/01-b71e04-login-api.md`。Feature 目录和 ticket 文件名都带创建时生成的 6 位随机串（rand6）。v4 的“追加票使用未占用编号”和“slug 仓库内唯一”只能在本地 worktree 检查，与被否掉的“ADR 最大号 +1”是同类缺陷：两条分支各加一个 `03-*.md`，或同时建 `.scratch/user-login/`，都能干净合并并静默混在一起。随机串让冲突概率可以忽略，不依赖人工协调；`NN` 只保留为阅读顺序。所有引用统一写仓库相对路径（可同时给出相对链接），以便 `git grep` 反查依赖。
 
-最小正文：Owner、Status、What to build、验收条件；Spec、Branch、Since、Blocked by、Context、Handoff 和可选的 Issue/MR 按模板填写。Owner 使用 team.md 名册中的成员 ID，不能从 git 配置或目录名猜测真实任务负责人。
+最小正文：Owner、Status、What to build、验收条件；Spec、Branch、Since、Blocked by、Context、Handoff 和可选的 MR 引用按模板填写。Owner 与 Status 只在 ticket 中维护；`MR:` 仅为指向 GitLab MR 的引用，审核与合并仍在 MR 中进行。Owner 使用 team.md 名册中的成员 ID，不能从 git 配置或目录名猜测真实任务负责人。
 
 执行状态：`draft`（默认）、`ready-for-agent`、`in-progress`、`blocked`、`implemented`、`dropped`。新票默认 draft，只有人能确认为 ready-for-agent 或标为 dropped，避免拆票结果被当作已审核。缺信息时保持 draft 或标 blocked 并写明原因。in-progress 必须写 `Branch:` 与 `Since:`，使 main 或其他分支上看到的状态能找到对应分支；超过团队约定天数没有推送视为陈旧，由人确认或改派。`implemented` 只表示所记录分支实现及约定验证完成；MR 打回时回到 in-progress，审核/合并结果查看 MR。状态词也不证明前置依赖已经在当前分支可用。
 
 同一个 feature 多人并行时，先由 feature 负责人提交只含 spec 与拆票的规划 MR 合入目标分支，作为共享基线，再分别修改各自 ticket。简单且清楚的小修复可以按直接请求开工，交付前补最小 ticket；不强制为它制造独立 spec 或 grill 流程。只做探索时 journal 可以引用主题和已有材料，不虚构就绪任务。
 
-Owner 是团队分工记录，不是实时锁。Agent 执行用户指定的任务，不从 Git 文件扫描并自动抢票。主分支不能展示所有工作分支的实时进度；tracker 提供基于 `git fetch` 与 `git grep` 的跨分支只读查询，只看已推送内容，只用于报告，不用于认领。是否改由 GitLab Issue/MR 承担 Owner 与在途状态，见 [proposed ADR](adr/2026-10-10-443dbf-task-state-source.md)。
+Owner 是团队分工记录，不是实时锁。Agent 执行用户指定的任务，不从 Git 文件扫描并自动抢票。主分支不能展示所有工作分支的实时进度；tracker 提供基于 `git fetch` 与 `git grep` 的跨分支只读查询，只看已推送内容，只用于报告，不用于认领。不使用 GitLab Issue 承担 Owner 与在途状态，见 [ADR](adr/2026-10-10-443dbf-task-state-source.md)。
 
 ### 生命周期与检索成本
 
@@ -204,15 +204,13 @@ Prompt-input 诊断因本轮外层沙箱阻止运行而通过已授权的沙箱�
 
 试点清单只在[验证记录](validation.md#试点计划)维护：6 项必要试点与 2026-10 评审补充的风险场景，均写明通过标准、重复次数和度量，目前全部未执行。
 
-第一版可补一项小型确定性检查：在常规 CI 中核验指定 Markdown 链接、必需字段和重复路径。它只检查结构，不宣称证明语义一致或测试真实执行。本设计仓库自身已加入同类检查（`scripts/check_docs.py`，见 [validation](validation.md#结构检查)）；目标项目是否增加以试点出现的遗漏为依据，当前不新增专用 CLI。
-
 ## 审查材料与来源
 
 - [Agent 能力与兼容性审查](reviews/agent-capabilities.md)
 - [Git/worktree 协作审查](reviews/git-collaboration.md)
 - [信息架构与轻量程度审查](reviews/minimal-architecture.md)
 - [2026-10 设计评审](reviews/2026-10-claude-design-review.md)
-- [Proposed ADR：任务状态来源](adr/2026-10-10-443dbf-task-state-source.md)
+- [ADR：任务状态来源](adr/2026-10-10-443dbf-task-state-source.md)
 - [汇总探测结果](validation-results.json)
 - [Matt 固定版本研究](references.md#matt-pocock-skills)，[Trellis 固定版本研究](references.md#trellis)
 - [官方 AGENTS 发现规则](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
