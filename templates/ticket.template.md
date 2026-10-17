@@ -18,7 +18,7 @@ MR: <可选：GitLab MR 链接，仅作引用；没有则删除本行>
 
 ## Blocked by
 
-<依赖票的仓库相对路径及实际阻塞原因；Status 为 blocked 时必填；没有则写 None。>
+<依赖票的仓库相对路径、所依赖的接口，以及依赖是否已合入；依赖未合入时基于其分支开工并在 MR 写 `Depends on !N`，或改为 blocked 并写明原因；Status 为 blocked 时必填；没有则写 None。>
 
 ## Context
 
