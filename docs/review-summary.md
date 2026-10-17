@@ -81,3 +81,16 @@ Agent 能力 reviewer 对综合设计再次复核，确认关键问题已在设�
 | 他人未合入分支与本票冲突时行为不一；票头非相邻修改合并后不一致；接手时未向用户说明前任未验证项 | Team 模板要求先停下询问、接手时列出 Not verified 与 Next；tracker 增加票头冲突规则 |
 
 陈旧信号以分支提交日期为准会被 rebase 刷新、归档后外向链接断开等其余发现暂未处理。
+
+## 2026-10-17 团队多 agent 模拟后的模板修正
+
+依据：在本分支 38d75b6 上用三名成员 agent、一名已离开成员和模拟 GitLab 跑了 7 轮协作模拟（报告不在本仓库）。多数规则成立（onboarding、点名确认、不可信材料、接手报告等）；失败与摩擦集中在开工状态、依赖就绪、人的决定落点和 MR 权限。本次修正：
+
+- 分支与合并硬规则：只在功能分支开发，不推送/不强推 main，合入需作者以外的人在最新提交上 approve，approve 后新提交须重新 approve，合并前核对依赖与顺序，不串联 approve 与 merge；部署建议受保护 main 与 “Reset approvals on push”（T12/T19/T28/T29）。
+- 依赖就绪：依赖未合入时默认基于依赖分支开工并在 MR 写 `Depends on !N`，否则 blocked；spec 新增票间接口一节（T13/T18）。
+- 人的决定写在持有该票的分支上，`Branch:` 始终是 MR 源分支，只在未合入分支上的票 dropped 时随文档 MR 带到 main（T24/T26）。
+- 开工第一步单独提交并推送 in-progress；`ticket-status` 提示 READY-WITH-COMMITS，并忽略目标分支上已 dropped/归档票的旧副本（T16/T20/T32），附手工测试 `tests/ticket-status-test.sh`。
+- Agent 代成员评论/approve/merge 需逐项明确指示；接手 MR 推到原分支不强推；禁止未经同意的破坏性 git 命令（T17/T21/T25/T30）。
+- 接手报告后继续工作；成员 ID 在同一条消息中询问（T1、T3 的措辞调整）。
+
+未处理：小修复状态路径（T2/T9/T15）、入组期间指派（T7）、CODEOWNERS 生成（T8）、归档前提（T33）等，留待后续。修改后的规则尚未重新跑模拟验证。
