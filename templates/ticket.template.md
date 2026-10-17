@@ -4,7 +4,7 @@ Owner: <成员 ID，见 docs/agents/team.md 名册；未经人指定时写 None>
 Status: draft
 Confirmed-by: <人确认为 ready-for-agent 时填写：成员 ID 与 YYYY-MM-DD；尚未确认写 None>
 Spec: <spec 引用（仓库相对路径）；没有则写 None>
-Branch: <in-progress 时必填：工作分支名；其他状态可保留最近分支或写 None>
+Branch: <in-progress 时必填：工作分支名，即该票 MR 的源分支（接手者推回原分支时不改）；其他状态可保留最近分支或写 None>
 Since: <in-progress 时必填：YYYY-MM-DD，开工或最近确认日期；否则写 None>
 MR: <可选：GitLab MR 链接，仅作引用；没有则删除本行>
 
