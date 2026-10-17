@@ -5,7 +5,11 @@
     docs/agents/scripts/ticket-status [N]      # N 为陈旧天数，默认 7，与 docs/agents/issue-tracker.md 一致
 
 只读取已推送的远端分支；不修改任何文件或分支。结果只用于向用户报告，不用于认领或改派。
-state：ok / STALE（Branch: 超过 N 天没有新提交）/ BRANCH-NOT-PUSHED（Branch: 所写分支不在远端）。
+state：ok / STALE（Branch: 超过 N 天没有新提交）/ BRANCH-NOT-PUSHED（Branch: 所写分支不在远端）/
+READY-WITH-COMMITS（票仍是 ready-for-agent，但有分支的名称或领先目标分支的提交说明含该票的 rand6，
+可能漏了开工提交；启发式提示）。
+目标分支（origin/HEAD，缺省为 origin/main）上已 dropped 或已移入 .scratch/_done/ 的票，其他分支上的
+in-progress 旧副本不再报告。
 分支日期是最近提交日期，rebase 或强推会刷新它；Since: 是人最近一次确认的日期，两者一并报告。
 """
 import datetime as dt
@@ -15,25 +19,52 @@ import sys
 
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 7
 PREFIX = "refs/remotes/origin/"
+TICKET = re.compile(r"\.scratch/([^/]+)/issues/([^/]+\.md)")
 
 
-def git(*args):
-    return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout
+def git(*args, check=True):
+    return subprocess.run(["git", *args], capture_output=True, text=True, check=check).stdout
 
 
 def tip_date(ref):
     return dt.date.fromisoformat(git("log", "-1", "--format=%cs", ref).strip())
 
 
+def ticket_paths(ref):
+    return git("ls-tree", "-r", "--name-only", "--full-tree", ref, "--", ".scratch").split()
+
+
+def header(ref, path):
+    return dict(re.findall(r"^(Owner|Status|Branch|Since): *(.*)$", git("show", f"{ref}:{path}"), re.M))
+
+
+def rand6(path):
+    m = re.match(r"\d+-([0-9a-f]{6})-", path.rsplit("/", 1)[-1])
+    return m.group(1) if m else None
+
+
 refs = [r for r in git("for-each-ref", "--format=%(refname)", PREFIX).split() if not r.endswith("/HEAD")]
+target = git("symbolic-ref", "-q", PREFIX + "HEAD", check=False).strip() or PREFIX + "main"
 today = dt.date.today()
+
+# 目标分支上的终态：dropped 的票与已归档的票（路径 .scratch/_done/<feature>/issues/<file>）
+closed = set()
+if target in refs:
+    for path in ticket_paths(target):
+        if path.startswith(".scratch/_done/"):
+            closed.add(".scratch/" + path[len(".scratch/_done/"):])
+        elif TICKET.fullmatch(path) and header(target, path).get("Status") == "dropped":
+            closed.add(path)
+
 tickets = {}  # (ticket path, Branch:) -> (seen-on ref, header)
+ready = {}    # ticket path -> 仍为 ready-for-agent 的分支
 for ref in refs:
-    paths = git("ls-tree", "-r", "--name-only", "--full-tree", ref, "--", ".scratch").split()
-    for path in paths:
-        if path.startswith(".scratch/_done/") or not re.fullmatch(r"\.scratch/[^/]+/issues/[^/]+\.md", path):
+    for path in ticket_paths(ref):
+        if path.startswith(".scratch/_done/") or not TICKET.fullmatch(path) or path in closed:
             continue
-        hdr = dict(re.findall(r"^(Owner|Status|Branch|Since): *(.*)$", git("show", f"{ref}:{path}"), re.M))
+        hdr = header(ref, path)
+        if hdr.get("Status") == "ready-for-agent":
+            ready.setdefault(path, []).append(ref)
         if hdr.get("Status") != "in-progress":
             continue
         key = (path, hdr.get("Branch", "None"))
@@ -53,6 +84,21 @@ for (path, branch), (ref, hdr) in sorted(tickets.items()):
         tip, state = None, "BRANCH-NOT-PUSHED"
     rows.append((path, hdr.get("Owner", "?"), branch, hdr.get("Since", "?"), str(tip or "-"), state,
                  ref.removeprefix("refs/remotes/")))
+
+# 仍为 ready-for-agent 却已有相关提交的票（漏了开工提交）
+in_progress = {p for p, _ in tickets}
+for path, seen in sorted(ready.items()):
+    tag = rand6(path)
+    if not tag or path in in_progress:
+        continue
+    for ref in refs:
+        if ref == target:
+            continue
+        ahead = git("log", "--format=%s%n%b", f"{target}..{ref}", check=False) if target in refs else ""
+        if ahead.strip() and (tag in ref or tag in ahead) and ref in seen:
+            hdr = header(ref, path)
+            rows.append((path, hdr.get("Owner", "?"), ref.removeprefix(PREFIX), hdr.get("Since", "?"),
+                         str(tip_date(ref)), "READY-WITH-COMMITS", ref.removeprefix("refs/remotes/")))
 
 print(f"# {today}，陈旧阈值 {N} 天；只含已推送内容")
 print("\t".join(["ticket", "owner", "branch", "since", "branch-tip", "state", "seen-on"]))
