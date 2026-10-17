@@ -76,6 +76,7 @@ curl -fsSL https://raw.githubusercontent.com/anchor-jevons/team-agent-harness/ma
 - `implemented` 表示分支实现与约定验证完成；正式审核和合并以 MR 为准。
 - Spec 保存需求与关键问答，CONTEXT 保存现行术语，ADR 保存重要取舍，journal 保存阶段事实与下一步。
 - 代码和相关文档在同一个 MR 中 review；无文本冲突不代表决策一致。
+- 只在功能分支开发；合入 main 只经 MR，需作者以外的成员在最新提交上 approve，approve 后有新提交须重新 approve；agent 不推送 main、不 force push。部署时建议在 GitLab 把 main 设为受保护分支（禁止直接推送与强推），并开启 “Reset approvals on push”。
 - Journal 是阶段性开发摘要，不承诺完整聊天审计或崩溃自动留痕。
 
 ## 审查后的重要修正

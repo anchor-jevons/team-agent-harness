@@ -26,7 +26,14 @@
 
 关键问答与确认及时写入 spec；术语和决策按 `domain.md` 维护。阶段记录由 `team-record-session` 按 journal 模板（`docs/agents/templates/journal.template.md`）保存；未安装该技能时按同一模板手写。两种方式都不能保证会话突然退出时完成收尾。
 
-## 合并
+## 分支与合并
+
+硬性规则，适用于所有成员和 agent：
+
+- 开发只在功能分支上进行；任何人都不直接推送到目标分支（main）。
+- 合入 main 只经 MR，且需要作者以外的成员在 MR 的**最新提交**上 approve。Approve 之后再有任何新提交（包括票头、确认记录等文档改动），都要重新 approve 后才能合并。
+- Agent 从不推送到 main，从不 force push（包括 `--force-with-lease`）。
+- 合并前先确认该 MR 依赖的 MR（`Depends on !N`）已经合入，并按依赖顺序逐个合并。不把 approve 与 merge 串成一条命令（如 `approve && merge`）；每一步检查结果后再进行下一步。
 
 代码和相关任务、决策、验证记录尽量同 MR review。除了文本冲突，还要检查相关需求、术语、ADR 与实现的语义一致性。Feature 全部完成后按 tracker 的归档规则移入 `.scratch/_done/`。
 
@@ -34,4 +41,4 @@
 
 从真实任务提出可复用规则，经 MR review 后形成共享基线。技能版本与适配清单保存在 `.agents/skills/README.md`，更新后通过 Git 同步并重新加载相关指令。
 
-建议在 GitLab 中为 `AGENTS.md`、`.agents/skills/`、`docs/agents/` 配置 CODEOWNERS，并把目标分支设为受保护分支、要求 Code Owner 批准。这只保护合入；功能分支上的技能改动在 checkout 后即对本地会话生效，review 时需单独注意。
+建议在 GitLab 中为 `AGENTS.md`、`.agents/skills/`、`docs/agents/` 配置 CODEOWNERS，并把目标分支（main）设为受保护分支：禁止直接推送和强推，只允许经 MR 合入；在 MR 审批设置中开启推送新提交时重置 approve（GitLab 的 “Reset approvals on push” / “Remove all approvals when commits are added to the source branch”），并要求 Code Owner 批准。这只保护合入；功能分支上的技能改动在 checkout 后即对本地会话生效，review 时需单独注意。

@@ -484,6 +484,7 @@ EOF
   say "       /AGENTS.md       $owners"
   say "       /.agents/skills/ $owners"
   say "       /docs/agents/    $owners"
+  say "     并把 main 设为受保护分支（禁止直接推送与强推），在 MR 审批设置中开启「Reset approvals on push」。"
   say "  4. 每位成员按 docs/agents/onboarding.md 完成入组检查，并在 docs/agents/team.md 登记。"
   say "  5. 查看在途工作：git fetch --prune origin && docs/agents/scripts/ticket-status"
   say "  注：team-* skills 尚未发布，本次只部署规则与模板；CONTEXT-MAP.md 与 CONTEXT.md 在首次需要领域术语时再建。"
