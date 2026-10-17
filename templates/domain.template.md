@@ -14,4 +14,4 @@
 
 重要且有真实取舍的架构决策写入根 `docs/adr/<YYYY-MM-DD>-<rand6>-<topic>.md`，rand6 生成与引用形式见 `docs/agents/issue-tracker.md`；引用写仓库相对路径。
 
-状态与替代关系按 ADR 模板：proposed 草稿可以修订；accepted 的实质变化使用新 ADR，新旧文件分别写 `Supersedes:` 与 `Superseded by:`，旧 ADR 改为 superseded。分支里的状态词不代表 MR 已批准。合并前检查与目标基线及相关实现的语义一致性。
+状态与替代关系按 ADR 模板（`docs/agents/templates/adr.template.md`）：proposed 草稿可以修订；accepted 的实质变化使用新 ADR，新旧文件分别写 `Supersedes:` 与 `Superseded by:`，旧 ADR 改为 superseded。分支里的状态词不代表 MR 已批准。合并前检查与目标基线及相关实现的语义一致性。

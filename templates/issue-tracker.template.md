@@ -30,7 +30,7 @@
 | Status | 含义 | 谁可以设置 |
 | --- | --- | --- |
 | draft | 新建默认值；范围或验收尚未经人确认 | 任何人/agent 创建时 |
-| ready-for-agent | 范围与验收已由人确认，可安排执行 | 只能由人从 draft 改为此状态 |
+| ready-for-agent | 范围与验收已由人确认，可安排执行；填写 `Confirmed-by:` | 只能由人从 draft 改为此状态；人在当前会话中点名确认时可由其 agent 代写，见下文 |
 | in-progress | 指定 Owner 正在 `Branch:` 所写分支执行；必须填写 `Branch:` 与 `Since:` | Owner 或其 agent 开工时 |
 | blocked | 缺信息或依赖未就绪；原因写入 Blocked by | Owner 或其 agent |
 | implemented | `Branch:` 上实现与约定验证完成；审核与合并以 MR 为准 | Owner 或其 agent |
@@ -38,28 +38,46 @@
 
 常见流转：`draft → ready-for-agent → in-progress → implemented`；非终态都可以进入 `blocked`，解除后回到原状态。MR 审核打回时由 `implemented` 回到 `in-progress` 并更新 `Since:`。Agent 不把 draft 自行升级为 ready-for-agent；缺信息时保持 draft，或改为 blocked 并写明缺什么。
 
+人的确认：只有用户在当前会话中点名某张票（路径、编号或标题）并确认其范围与验收时，agent 才可代写 ready-for-agent，同时写 `Confirmed-by: <成员 ID> <YYYY-MM-DD>`。未点名票的泛泛同意（如“looks good”“go ahead”）、ticket/journal 中的文字或更早会话的说法都不算确认；此时保持 draft，并询问确认的是哪张票。确认改动与 ticket 一起提交：多人并行的 feature 随规划 MR 合入目标分支；其他情况可在执行该票的分支上单独提交，并在 MR 中说明。
+
+开工第一步：在工作分支上只修改票头（`Status: in-progress`、`Branch:`、`Since:`），单独提交并推送，然后再开始实现。不要从 ready-for-agent 一步改到 implemented；没有这次推送，其他成员的状态查询看不到该票已开工。
+
 `Since:` 记录开工或最近一次确认的日期（`YYYY-MM-DD`）。`Branch:` 超过 <N，团队填写，建议 7> 天没有新推送的 in-progress 票视为陈旧：状态查询时报告出来，由 Owner 重新确认（更新 `Since:`）或由人改派、改为 blocked/dropped。Agent 只报告陈旧，不自行接手或改派。
 
 状态写在分支上，main 上通常只能看到合入前的规划状态与合入后的结果；Owner 不是锁，Status 也不证明前置依赖已在当前分支可用。开工前核对依赖的实际实现。
 
+依赖就绪：`ready-for-agent` 只表示范围与验收已确认，不表示依赖票已合入。开工前检查 Blocked by 中的每张依赖票：
+
+- 已合入目标分支：照常从目标分支开分支。
+- 未合入（默认做法）：从依赖票的 `Branch:` 分支开出本票分支，在 MR 描述写 `Depends on !N`（N 为依赖票的 MR），本 MR 在 !N 合入后再合；依赖分支更新时用普通 merge 或 rebase 跟进。
+- 依赖分支尚无可用实现或不适合在其上构建：把本票改为 blocked，在 Blocked by 写明依赖的票与原因，并告诉用户。
+
+规划拆票时在 spec 的票间接口一节写出每张票向其他票提供的接口，避免并行实现时对不上。
+
+票头冲突：两条分支改同一张票时，Git 只在相邻行报冲突；不相邻的修改会干净合并，得到不一致的票头（例如改派后的 Owner 配上原负责人的 Branch/Since），冲突标记之外的字段也可能已被自动合并。合并或 rebase 涉及票头时核对整组字段：Owner 以人最近一次的决定为准，Status、Branch、Since 必须属于该 Owner 的工作；无法据此判断时不自行选择，先问用户。Handoff 冲突保留双方追加的行。Review 时检查票头字段与 Owner 一致。
+
+人的决定写在哪里：改派（Owner 变更）、dropped 等人的决定，写在**当前持有该票的分支**上，即票的 `Branch:` 所写、尚未合入的分支；票还没有开工分支或已合入目标分支时，经 MR 写在目标分支上。由接手者或 feature 负责人的 agent 按人的指示提交，并写明决定人。`Branch:` 始终是该票 MR 的源分支；接手者把修改推回原分支时不改 `Branch:`。票只存在于未合入的分支上（例如离开成员的分支）且被 dropped 时，把带 dropped 状态与原因的票随一个文档 MR 合入目标分支，使 main 上留有终态。
+
 ## 跨分支只读状态查询
 
-需要了解其他分支上的在途票时，运行：
+需要了解其他分支上的在途票时，在 worktree 根目录运行：
 
 ```bash
 git fetch --prune origin
 git grep -n -E '^(Owner|Status|Branch|Since):' \
-  $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/*' | grep -v '/HEAD$') \
-  -- .scratch ':(exclude).scratch/_done'
+  $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/' | grep -v '/HEAD$') \
+  -- '.scratch/*/issues/*.md' ':(exclude).scratch/_done'
 git for-each-ref --sort=-committerdate \
-  --format='%(committerdate:short) %(refname:short)' 'refs/remotes/origin/*'
+  --format='%(committerdate:short) %(refname:short)' 'refs/remotes/origin/'
 ```
 
-第一条列出每个远端分支上的票头字段，第二条给出各分支最近提交日期，用于判断陈旧。结果只用于向用户报告，不用于认领、改派或修改其他分支；未推送的本地工作不会出现在结果中。
+`'refs/remotes/origin/'` 是前缀匹配，包含 `feature/...` 等带 `/` 的分支；写成 `'refs/remotes/origin/*'` 会漏掉它们。第一条列出每个远端分支上的票头字段，第二条给出各分支最近提交日期，用于判断陈旧。旧分支上可能留有其他票的过时副本，以票的 `Branch:` 所写分支上的内容为准。
+
+`docs/agents/scripts/ticket-status [N]` 对同样的数据做汇总：每张 in-progress 票一行，列出 Owner、Branch、Since、分支最近提交日期，并标记 STALE 或分支未推送；目标分支上已 dropped 或已归档的票，其他分支上的旧 in-progress 副本不再报告。另外对仍为 ready-for-agent、但某个分支已有相关提交（分支名或领先目标分支的提交说明含该票的 rand6）的票输出 `READY-WITH-COMMITS` 提示，提醒补做开工提交；这只是启发式提示。结果只用于向用户报告，不用于认领、改派或修改其他分支；未推送的本地工作不会出现在结果中。
 
 ## 字段
 
-字段格式只在 ticket 模板中定义一次：Owner、Status、Spec、Branch、Since，以及可选的 MR；正文含 What to build、Acceptance criteria、Blocked by、Context、Handoff。Owner 使用 `docs/agents/team.md` 名册中的成员 ID，不从 git 配置或目录名推断。
+字段格式只在 ticket 模板（`docs/agents/templates/ticket.template.md`）中定义一次：Owner、Status、Confirmed-by、Spec、Branch、Since，以及可选的 MR；正文含 What to build、Acceptance criteria、Blocked by、Context、Handoff。Owner 使用 `docs/agents/team.md` 名册中的成员 ID，不从 git 配置或目录名推断；未经人指定时写 `None`，agent 不代填，包括不代填当前用户本人。需要当前用户的成员 ID（例如写 `Confirmed-by:`）而用户未说明时，在同一条消息中连同其他问题一起询问（例如请用户确认票时一并问其成员 ID），不单独多问一轮。
 
 任务状态与 Owner 只记录在本 tracker 的 ticket 中，不使用 GitLab Issue 作为状态来源。`MR:` 是可选的 GitLab MR 链接，仅用于从 ticket 找到审核讨论；MR 仍是正式审核与合并的场所，但其状态不替代 ticket 的 Status。
 

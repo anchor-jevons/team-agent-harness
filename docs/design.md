@@ -46,7 +46,9 @@ repo-name/                              # 当前 checkout / worktree 根
 │   │   ├── team.md                     # 跨人协作、成员名册与交接约定
 │   │   ├── issue-tracker.md            # 路径、标识、任务格式、执行状态唯一来源
 │   │   ├── domain.md                   # 领域文档/ADR 的发现与更新规则
-│   │   └── onboarding.md               # 入组检查
+│   │   ├── onboarding.md               # 入组检查
+│   │   ├── templates/                  # spec/ticket/ADR/journal 格式的唯一定义
+│   │   └── scripts/ticket-status       # 跨分支 in-progress 票只读汇总
 │   ├── adr/                            # 按需；重要架构取舍
 │   │   └── <YYYY-MM-DD>-<rand6>-<topic>.md
 │   └── journal/                        # 按需；每人每工作阶段一份记录
@@ -85,11 +87,11 @@ repo-name/                              # 当前 checkout / worktree 根
 | 阶段事实与下一步 | docs/journal/member/ | 工作成员，agent 代写 |
 | 正式 review、批准、合并结果 | GitLab MR | 团队现有审查流程 |
 
-team.md 不重复状态表、日志模板或编码规范。Journal 字段只在 [journal 模板](../templates/journal.template.md)定义，team-record-session 引用它而不另写一份。规则/技能版本变化通过 MR 形成新基线；单次 agent 偏好不能直接成为全团队长期约束。
+team.md 不重复状态表、日志模板或编码规范。Journal 字段只在 [journal 模板](../templates/journal.template.md)定义（目标仓库中复制到 `docs/agents/templates/`），team-record-session 引用它而不另写一份；技能未安装时按该模板手写。规则/技能版本变化通过 MR 形成新基线；单次 agent 偏好不能直接成为全团队长期约束。
 
 ## AGENTS.md 的建议入口
 
-入口草案只维护一份：[templates/AGENTS.template.md](../templates/AGENTS.template.md)。它包含四部分：项目一句话与代码目录；以当前 worktree 根解析路径，并在搜索时排除归档与 journal；按场景读取 team、issue-tracker、development、domain 和 team-record-session；优先级与信任边界。
+入口草案只维护一份：[templates/AGENTS.template.md](../templates/AGENTS.template.md)。它包含四部分：项目一句话与代码目录；以当前 worktree 根解析路径，并在搜索时排除归档与 journal；按场景读取 team、issue-tracker、development、domain 和 team-record-session（未安装时按 journal 模板手写）；优先级与信任边界。
 
 不在入口粘贴全套 Matt 流程、历史日志或代码目录清单。项目有真实特殊命令、约束时再补充。根路径说明约束实际读写，不授予额外文件系统权限。
 
@@ -122,9 +124,9 @@ Codex 官方文档说明：全局 `~/.codex` 的 `AGENTS.override.md`/`AGENTS.md
 
 Ticket 的仓库相对路径是标识，例如 `.scratch/user-login-a3f9c2/issues/01-b71e04-login-api.md`。Feature 目录和 ticket 文件名都带创建时生成的 6 位随机串（rand6）。v4 的“追加票使用未占用编号”和“slug 仓库内唯一”只能在本地 worktree 检查，与被否掉的“ADR 最大号 +1”是同类缺陷：两条分支各加一个 `03-*.md`，或同时建 `.scratch/user-login/`，都能干净合并并静默混在一起。随机串让冲突概率可以忽略，不依赖人工协调；`NN` 只保留为阅读顺序。所有引用统一写仓库相对路径（可同时给出相对链接），以便 `git grep` 反查依赖。
 
-最小正文：Owner、Status、What to build、验收条件；Spec、Branch、Since、Blocked by、Context、Handoff 和可选的 MR 引用按模板填写。Owner 与 Status 只在 ticket 中维护；`MR:` 仅为指向 GitLab MR 的引用，审核与合并仍在 MR 中进行。Owner 使用 team.md 名册中的成员 ID，不能从 git 配置或目录名猜测真实任务负责人。
+最小正文：Owner、Status、What to build、验收条件；Confirmed-by、Spec、Branch、Since、Blocked by、Context、Handoff 和可选的 MR 引用按模板填写。Owner 与 Status 只在 ticket 中维护；`MR:` 仅为指向 GitLab MR 的引用，审核与合并仍在 MR 中进行。Owner 使用 team.md 名册中的成员 ID，不能从 git 配置或目录名猜测真实任务负责人；未经人指定时写 `None`，agent 不代填。
 
-执行状态：`draft`（默认）、`ready-for-agent`、`in-progress`、`blocked`、`implemented`、`dropped`。新票默认 draft，只有人能确认为 ready-for-agent 或标为 dropped，避免拆票结果被当作已审核。缺信息时保持 draft 或标 blocked 并写明原因。in-progress 必须写 `Branch:` 与 `Since:`，使 main 或其他分支上看到的状态能找到对应分支；超过团队约定天数没有推送视为陈旧，由人确认或改派。`implemented` 只表示所记录分支实现及约定验证完成；MR 打回时回到 in-progress，审核/合并结果查看 MR。状态词也不证明前置依赖已经在当前分支可用。
+执行状态：`draft`（默认）、`ready-for-agent`、`in-progress`、`blocked`、`implemented`、`dropped`。新票默认 draft，只有人能确认为 ready-for-agent 或标为 dropped，避免拆票结果被当作已审核。用户在会话中点名某张票并确认时，agent 可以代写该状态并记录 `Confirmed-by:`；未点名的“go ahead”不算确认。缺信息时保持 draft 或标 blocked 并写明原因。in-progress 必须写 `Branch:` 与 `Since:`，使 main 或其他分支上看到的状态能找到对应分支；超过团队约定天数没有推送视为陈旧，由人确认或改派。`implemented` 只表示所记录分支实现及约定验证完成；MR 打回时回到 in-progress，审核/合并结果查看 MR。状态词也不证明前置依赖已经在当前分支可用。
 
 同一个 feature 多人并行时，先由 feature 负责人提交只含 spec 与拆票的规划 MR 合入目标分支，作为共享基线，再分别修改各自 ticket。简单且清楚的小修复可以按直接请求开工，交付前补最小 ticket；不强制为它制造独立 spec 或 grill 流程。只做探索时 journal 可以引用主题和已有材料，不虚构就绪任务。
 
@@ -142,7 +144,7 @@ CONTEXT 保存当前定义，每项简短；持续建模采取修订、去重和
 
 ADR 按需创建。草稿（proposed）允许修订；已接受（accepted）的实质决策变化用新 ADR 替代，新旧文件分别写 `Supersedes:` 与 `Superseded by:`，旧 ADR 改为 superseded，格式见 [ADR 模板](../templates/adr.template.md)。正文状态不取代 MR 审批事实。一个分支中的 accepted 不能被解释为其他分支已经采用。
 
-两个不同 ADR 文件内容相反，也可能无文本冲突地合并。Reviewer 需要检查本次涉及的 spec、词汇、决策和代码是否一致，不仅检查 Git 冲突标记。编号改成唯一标识只能解决引用冲突，不能解决决策冲突。
+开发中发现他人未合入分支上的定义或 ADR 与本票冲突时，先停下报告，由用户决定，不在其上继续构建（规则见 team 模板）。两个不同 ADR 文件内容相反，也可能无文本冲突地合并。Reviewer 需要检查本次涉及的 spec、词汇、决策和代码是否一致，不仅检查 Git 冲突标记。编号改成唯一标识只能解决引用冲突，不能解决决策冲突。
 
 ## Journal 与跨人交接
 
@@ -152,7 +154,7 @@ ADR 按需创建。草稿（proposed）允许修订；已接受（accepted）的
 
 每位成员独立目录，文件名 `<YYYY-MM-DD>-<rand6>-<topic>.md`，与 ADR 同样的“日期-随机串-主题”顺序，rand6 区分同日多会话。日志避免复制 spec 或 ADR 正文；长测试结果可引用可获取的 CI/MR 证据。仅本机临时文件不是其他成员可获取的交接证据。
 
-共享交接至少包含任务路径和可获取版本。路径 + 未推送的本地文件不算跨成员交接完成。Squash/rebase 后旧 SHA 可能不在主分支祖先链，长期追踪结合 ticket/journal/MR；依赖完成以实际接口和行为核对，不能只检查提交祖先关系。
+共享交接至少包含任务路径和可获取版本。路径 + 未推送的本地文件不算跨成员交接完成。接手者继续前先向用户列出前任 journal 的 Not verified 与 Next，避免把未验证的继承状态当作已验证。Squash/rebase 后旧 SHA 可能不在主分支祖先链，长期追踪结合 ticket/journal/MR；依赖完成以实际接口和行为核对，不能只检查提交祖先关系。
 
 突然退出可能没有最后一份 journal。恢复时检查现有文件、diff、提交和验证现状，并标记不能确认的进展。第一版提供阶段摘要，不承诺完整操作日志或每次 AI 调用审计。
 

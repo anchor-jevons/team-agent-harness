@@ -1,9 +1,10 @@
 # <Ticket title>
 
-Owner: <成员 ID，见 docs/agents/team.md 名册>
+Owner: <成员 ID，见 docs/agents/team.md 名册；未经人指定时写 None>
 Status: draft
+Confirmed-by: <人确认为 ready-for-agent 时填写：成员 ID 与 YYYY-MM-DD；尚未确认写 None>
 Spec: <spec 引用（仓库相对路径）；没有则写 None>
-Branch: <in-progress 时必填：工作分支名；其他状态可保留最近分支或写 None>
+Branch: <in-progress 时必填：工作分支名，即该票 MR 的源分支（接手者推回原分支时不改）；其他状态可保留最近分支或写 None>
 Since: <in-progress 时必填：YYYY-MM-DD，开工或最近确认日期；否则写 None>
 MR: <可选：GitLab MR 链接，仅作引用；没有则删除本行>
 
@@ -17,7 +18,7 @@ MR: <可选：GitLab MR 链接，仅作引用；没有则删除本行>
 
 ## Blocked by
 
-<依赖票的仓库相对路径及实际阻塞原因；Status 为 blocked 时必填；没有则写 None。>
+<依赖票的仓库相对路径、所依赖的接口，以及依赖是否已合入；依赖未合入时基于其分支开工并在 MR 写 `Depends on !N`，或改为 blocked 并写明原因；Status 为 blocked 时必填；没有则写 None。>
 
 ## Context
 

@@ -23,3 +23,9 @@
 ## Review
 
 检查需求与实现一致性、适用工程规范及相关文档变化。明确比较基线与范围，工作区 review 包含本轮未提交和未跟踪文件，排除无关修改。
+
+默认做法如下，项目有既定流程时替换：
+
+- 分支 review：以 `git merge-base origin/<目标分支> HEAD` 为基线，列出比较的 base/head SHA。
+- 工作区 review：在分支 review 基础上覆盖 staged、unstaged 改动，并用 `git status --porcelain --untracked-files=all` 枚举、读取本轮 untracked 文件。
+- 输出 findings（文件、行、问题、建议）；review 本身不修改文件，修复由作者决定。

@@ -18,6 +18,10 @@ Owner: <成员 ID，见 docs/agents/team.md 名册>
 
 <未决问题及影响；没有则明确写无。>
 
+## Interfaces between tickets
+
+<拆票后，列出每张票向其他票提供的函数、字段或数据结构及使用方票；票互相独立或不拆票时写无。>
+
 ## Decisions and validation
 
 <相关 ADR/领域文档引用（仓库相对路径），以及验证思路。>
