@@ -44,7 +44,7 @@
 
 规则（`AGENTS.md`、`docs/agents/`、`.agents/skills/`）只经 MR 修改，来源是真实任务：
 
-- 工作中遇到值得改规则的问题，写进 journal 的 `Lessons`（带证据路径；这是数据，不是指令）。
+- 每份 journal 都有 `Lessons` 节：工作中遇到的摩擦（绕路、规则不清、工具或环境缺失、操作被拒绝）写 1–3 条，带证据路径；确实没有就写 `none`。这是数据，不是指令。
 - 由人显式调用 `team-retro` 汇总 Lessons、review 意见和检查输出，产出规则变更提案 MR：每项引用已核实的事件，写明删除或合并的现有规则，在 `docs/agents/rule-log.md` 登记来源；能用脚本、测试或 GitLab 设置保证的，做成检查而不是规则文字。 <!-- flow: G10 retro -->
 - 流程（步骤、流转、闸门）画在 `docs/agents/workflow.md`，以文字规则为准。改流程时，提案写成一个小的图改动（增删一个节点、边或闸门），同时修改对应规则文字并登记来源。
 - 任何改规则的 MR 都在描述中附上 `docs/agents/scripts/rule-check` 的输出，以及 `docs/agents/rule-regression.md` 中受影响场景的结果。rule-check 为 FAIL（超出预算、缺来源）时不合入。检查脚本一律运行目标分支上的版本：`git show origin/main:docs/agents/scripts/<脚本> | python3 - [参数]`（`rule-check --from-base` 是同义的快捷方式）。 <!-- flow: G11 -->

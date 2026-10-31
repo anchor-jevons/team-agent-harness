@@ -27,7 +27,7 @@ flowchart TD
   claim -->|"G8"| dropped
   merged -->|"G9 全部 implemented 且已合并或 dropped"| archive["归档到 .scratch/_done/"]
   dropped -->|"G9"| archive
-  impl --> journal["journal：Lessons（可选）"]
+  impl --> journal["journal：Lessons（必填，可写 none）"]
   journal --> retro["team-retro：由人显式调用"]
   retro -->|"G10 引用已核实事件，写明删除或合并"| rulemr["规则提案 MR"]
   rulemr -->|"G11 rule-check PASS，附回归结果"| review

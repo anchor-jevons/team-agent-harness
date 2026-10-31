@@ -195,7 +195,7 @@ main() {
   for f in AGENTS development team issue-tracker domain onboarding skills-README spec ticket adr journal rule-regression rule-log workflow; do
     [ -f "$T/$f.template.md" ] || die "来源中缺少模板：templates/$f.template.md（来源：$src）"
   done
-  for f in scripts/ticket-status scripts/rule-check skills/team-retro/SKILL.md skills/team-retro/agents/openai.yaml skills/team-retro/LICENSE.mattpocock-skills; do
+  for f in scripts/ticket-status scripts/push-check scripts/rule-check skills/team-retro/SKILL.md skills/team-retro/agents/openai.yaml skills/team-retro/LICENSE.mattpocock-skills; do
     [ -f "$T/$f" ] || die "来源中缺少 templates/$f（来源：$src）"
   done
   case "$top/" in "$src/"*) die "目标仓库就是 harness 仓库本身；请指定要部署到的项目仓库" ;; esac
@@ -290,7 +290,7 @@ main() {
   cp "$T/development.template.md" "$out/docs/development.md"
   for f in team issue-tracker domain onboarding rule-regression rule-log workflow; do cp "$T/$f.template.md" "$out/docs/agents/$f.md"; done
   for f in spec ticket adr journal; do cp "$T/$f.template.md" "$out/docs/agents/templates/$f.template.md"; done
-  for f in ticket-status rule-check; do cp "$T/scripts/$f" "$out/docs/agents/scripts/$f"; chmod 755 "$out/docs/agents/scripts/$f"; done
+  for f in ticket-status push-check rule-check; do cp "$T/scripts/$f" "$out/docs/agents/scripts/$f"; chmod 755 "$out/docs/agents/scripts/$f"; done
   cp "$T/skills-README.template.md" "$out/.agents/skills/README.md"
   for f in SKILL.md agents/openai.yaml LICENSE.mattpocock-skills; do cp "$T/skills/team-retro/$f" "$out/.agents/skills/team-retro/$f"; done
   # rule-log：基线记录的日期
@@ -346,7 +346,7 @@ EOF
   # ---------- 计划 ----------
   local files=(AGENTS.md docs/development.md docs/agents/team.md docs/agents/issue-tracker.md docs/agents/domain.md
     docs/agents/onboarding.md docs/agents/templates/spec.template.md docs/agents/templates/ticket.template.md
-    docs/agents/templates/adr.template.md docs/agents/templates/journal.template.md docs/agents/scripts/ticket-status
+    docs/agents/templates/adr.template.md docs/agents/templates/journal.template.md docs/agents/scripts/ticket-status docs/agents/scripts/push-check
     docs/agents/rule-regression.md docs/agents/rule-log.md docs/agents/workflow.md docs/agents/scripts/rule-check
     .agents/skills/README.md .agents/skills/team-retro/SKILL.md .agents/skills/team-retro/agents/openai.yaml
     .agents/skills/team-retro/LICENSE.mattpocock-skills docs/agents/HARNESS-VERSION)
@@ -373,7 +373,7 @@ EOF
     fi
   done
   [ "${#ign[@]}" = 0 ] || warn "以下文件被 .gitignore 忽略，会写入但不提交：${ign[*]}"
-  command -v python3 >/dev/null 2>&1 || warn "未找到 python3；docs/agents/scripts/ticket-status 与 rule-check 需要 python3 (>=3.9)"
+  command -v python3 >/dev/null 2>&1 || warn "未找到 python3；docs/agents/scripts/ticket-status、push-check 与 rule-check 需要 python3 (>=3.9)"
 
   info "目标仓库：$top"
   info "来源：$repo  ref=$src_ref  commit=$src_commit（$mode）"
@@ -421,7 +421,7 @@ EOF
       mkdir -p "$top/$(dirname "$f")"
       cp "$out/$f" "$top/$f"
     done
-    for f in ticket-status rule-check; do
+    for f in ticket-status push-check rule-check; do
       case " ${create[*]} " in *" docs/agents/scripts/$f "*) chmod 755 "$top/docs/agents/scripts/$f" ;; esac
     done
     for f in ${newf[@]+"${newf[@]}"}; do
@@ -429,7 +429,7 @@ EOF
     done
     if [ "$do_commit" = 1 ]; then
       git -C "$top" add -- "${commit_files[@]}"
-      for f in ticket-status rule-check; do
+      for f in ticket-status push-check rule-check; do
         git -C "$top" update-index --chmod=+x -- "docs/agents/scripts/$f" 2>/dev/null || true
       done
       git -C "$top" commit -q -m "chore: 部署 team-agent-harness 规则与模板（${src_commit:0:12}）" \

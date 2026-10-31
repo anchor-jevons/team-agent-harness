@@ -24,6 +24,7 @@
 | [ADR](adr.template.md) | `docs/adr/<YYYY-MM-DD>-<rand6>-<topic>.md` |
 | [Journal](journal.template.md) | `docs/journal/<member-id>/<YYYY-MM-DD>-<rand6>-<topic>.md` |
 | [票状态汇总脚本](scripts/ticket-status) | `docs/agents/scripts/ticket-status`（保留可执行权限） |
+| [推送前检查脚本](scripts/push-check) | `docs/agents/scripts/push-check`（保留可执行权限） |
 | [规则检查脚本](scripts/rule-check) | `docs/agents/scripts/rule-check`（保留可执行权限） |
 
 Spec、Ticket、ADR、Journal 四个模板另外原样复制到目标仓库的 `docs/agents/templates/`（保留文件名与字段，只按项目调整占位说明），作为目标仓库中这些文件格式的唯一定义；其他规则提到的“ticket 模板”“journal 模板”“ADR 模板”都指那里的文件。上表右列是按模板新建的文件所在位置。
@@ -36,7 +37,7 @@ Spec、Ticket、ADR、Journal 四个模板另外原样复制到目标仓库的 `
 
 ## 一键部署
 
-仓库根目录的 `install.sh` 按上表把规则与模板部署到目标仓库，依赖只有 bash、git、coreutils 和 sed（部署后的 `ticket-status` 需要 python3）。
+仓库根目录的 `install.sh` 按上表把规则与模板部署到目标仓库，依赖只有 bash、git、coreutils 和 sed（部署后的 `ticket-status`、`push-check` 需要 python3）。
 
 ```bash
 # 本地克隆：目标目录默认为当前目录所在仓库

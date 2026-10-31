@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""推送前的只读检查：当前分支是否在接手陈旧或已离开成员的分支，journal 是否写了 Lessons。
+
+用法（在 worktree 内，先运行 git fetch --prune origin）：
+    docs/agents/scripts/push-check --member <成员ID> [--base REF] [N]
+N 为陈旧天数，默认 7，与 docs/agents/issue-tracker.md 一致。成员 ID 由用户告知，不从 git 配置推断。
+
+检查当前 HEAD（即将推送的内容）：
+  FAIL STALE-BRANCH    当前分支（或其上游）是一张 in-progress 票的 Branch:，该票 Owner 不是你，且分支陈旧
+                       （最近提交超过 N 天）或 Owner 不在 docs/agents/team.md 名册中（已离开）。
+  FAIL FROM-STALE      HEAD 包含上述分支上尚未进入目标分支的提交（从陈旧分支开出或合入了它）。
+  FAIL JOURNAL-LESSONS 相对目标分支新增或修改的 docs/journal/**.md 缺少 `## Lessons` 节或该节为空
+                       （没有教训时写一行 `none`）。
+  WARN OTHER-OWNER     当前分支的票 Owner 是名册中的其他成员：只有用户在当前会话明确要求接手该 MR 时才推送。
+有 FAIL 时退出码为 1：不要推送，把输出报告给用户。陈旧分支只报告，由人决定改派或 dropped；
+新 Owner 从目标分支开新分支。本脚本不修改任何文件或分支。
+"""
+import datetime as dt
+import re
+import subprocess
+import sys
+
+PREFIX = "refs/remotes/origin/"
+TICKET = re.compile(r"\.scratch/([^/]+)/issues/([^/]+\.md)")
+
+
+def git(*args, check=True):
+    return subprocess.run(["git", *args], capture_output=True, text=True, check=check).stdout
+
+
+def usage(msg):
+    print(f"push-check: {msg}\n用法：docs/agents/scripts/push-check --member <成员ID> [--base REF] [N]", file=sys.stderr)
+    sys.exit(2)
+
+
+args, member, base, N = sys.argv[1:], None, None, 7
+while args:
+    a = args.pop(0)
+    if a == "--member" and args:
+        member = args.pop(0)
+    elif a == "--base" and args:
+        base = args.pop(0)
+    elif a.isdigit():
+        N = int(a)
+    else:
+        usage(f"无法识别的参数：{a}")
+if not member:
+    usage("缺少 --member：成员 ID 由用户告知，见 docs/agents/team.md 名册")
+
+refs = [r for r in git("for-each-ref", "--format=%(refname)", PREFIX).split() if not r.endswith("/HEAD")]
+target = base or git("symbolic-ref", "-q", PREFIX + "HEAD", check=False).strip() or PREFIX + "main"
+if not git("rev-parse", "-q", "--verify", target + "^{commit}", check=False).strip():
+    usage(f"找不到目标分支 {target}；先 git fetch --prune origin，或用 --base 指定")
+today = dt.date.today()
+
+roster = set()
+try:
+    team = git("show", f"{target}:docs/agents/team.md")
+    sec = team.split("## 成员名册", 1)[1].split("\n## ", 1)[0]
+    for line in sec.splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if line.startswith("|") and cells and cells[0] and not set(cells[0]) <= set("-: ") and cells[0] != "成员 ID":
+            roster.add(cells[0])
+except (subprocess.CalledProcessError, IndexError):
+    pass
+
+fails, warns = [], []
+cur = git("branch", "--show-current").strip()
+upstream = git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}", check=False).strip()
+mine = {b for b in (cur, upstream.removeprefix("origin/") if upstream.startswith("origin/") else "") if b}
+
+
+def ancestor(a, b):
+    return subprocess.run(["git", "merge-base", "--is-ancestor", a, b]).returncode == 0
+
+
+for ref in refs:
+    if ref == target:
+        continue
+    name = ref.removeprefix(PREFIX)
+    for path in git("ls-tree", "-r", "--name-only", "--full-tree", ref, "--", ".scratch").split():
+        if path.startswith(".scratch/_done/") or not TICKET.fullmatch(path):
+            continue
+        hdr = dict(re.findall(r"^(Owner|Status|Branch): *(.*)$", git("show", f"{ref}:{path}"), re.M))
+        if hdr.get("Status") != "in-progress" or hdr.get("Branch") != name:
+            continue
+        owner = hdr.get("Owner", "?")
+        if owner in (member, "None"):
+            continue
+        tip = dt.date.fromisoformat(git("log", "-1", "--format=%cs", ref).strip())
+        departed = bool(roster) and owner not in roster
+        stale = (today - tip).days > N or departed
+        why = f"Owner {owner}{'（不在名册）' if departed else ''}，最近提交 {tip}"
+        if stale and name in mine:
+            fails.append(f"STALE-BRANCH\t{name}\t{path}\t{why}：陈旧分支只报告，不在其上提交或推送；由人决定改派或 dropped，新 Owner 从目标分支开新分支")
+        elif stale and ancestor(ref, "HEAD") and not ancestor(ref, target):
+            fails.append(f"FROM-STALE\t{name}\t{path}\t{why}：HEAD 包含该分支未合入目标分支的提交；改从目标分支开分支，复用其中代码先向用户报告来源")
+        elif not stale and name in mine:
+            warns.append(f"OTHER-OWNER\t{name}\t{path}\t{why}：只有用户在当前会话明确要求接手该 MR 时才推送（见 docs/agents/team.md 的“接手”）")
+
+mb = git("merge-base", target, "HEAD", check=False).strip()
+changed = git("diff", "--name-only", "--diff-filter=AM", f"{mb}..HEAD", "--", "docs/journal").split() if mb else []
+for path in changed:
+    if not path.endswith(".md"):
+        continue
+    text = git("show", f"HEAD:{path}")
+    m = re.search(r"^## Lessons[ \t]*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+    body = re.sub(r"<!--.*?-->", "", m.group(1), flags=re.S).strip() if m else ""
+    if not body or re.fullmatch(r"<[^>]*>", body):
+        fails.append(f"JOURNAL-LESSONS\t{path}\t缺少 `## Lessons` 或该节为空：写 1–3 条（现象；证据路径；建议落点），没有就写一行 none")
+
+print(f"# push-check {today}  member={member}  branch={cur or '(detached)'}  target={target.removeprefix('refs/remotes/')}  陈旧阈值 {N} 天")
+for line in fails:
+    print("FAIL\t" + line)
+for line in warns:
+    print("WARN\t" + line)
+print("RESULT\t" + ("FAIL：不要推送，把上面各行报告给用户" if fails else "PASS"))
+sys.exit(1 if fails else 0)
