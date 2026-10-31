@@ -175,13 +175,13 @@ def main():
     if rules and not new_rows:
         fail.append(f"规则文件有改动，但 {LOG} 没有新增记录（每项改动登记 ID、操作、位置、来源与回归结果）")
 
-    added = sum(a for a, _ in rules.values())
-    removed = sum(r for _, r in rules.values())
+    touched_checks = sorted(p for p in changed if p.startswith(CHECKS) or p == REG)
+    added = sum(a for p, (a, _) in rules.items() if p not in touched_checks)
+    removed = sum(r for p, (_, r) in rules.items() if p not in touched_checks)
     ops = {c[1] for c in new_rows if len(c) > 1}
     if added and not removed and not ops & {"merge", "delete"}:
         warn.append(f"ADD-ONLY：规则文件只增不减（+{added}）；MR 中说明为什么没有可删除或合并的规则")
 
-    touched_checks = sorted(p for p in changed if p.startswith(CHECKS) or p == REG)
     if touched_checks:
         warn.append("CHECKS-CHANGED：检查本身被修改（" + "、".join(touched_checks)
                     + "）；在 MR 中单独说明，不与放宽对应规则的改动混在一起，由 CODEOWNERS review")
