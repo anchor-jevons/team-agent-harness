@@ -192,7 +192,7 @@ main() {
     src_commit=$(git -C "$src" rev-parse HEAD)
   fi
   local T=$src/templates f
-  for f in AGENTS development team issue-tracker domain onboarding skills-README spec ticket adr journal rule-regression rule-log; do
+  for f in AGENTS development team issue-tracker domain onboarding skills-README spec ticket adr journal rule-regression rule-log workflow; do
     [ -f "$T/$f.template.md" ] || die "来源中缺少模板：templates/$f.template.md（来源：$src）"
   done
   for f in scripts/ticket-status scripts/rule-check skills/team-retro/SKILL.md skills/team-retro/agents/openai.yaml skills/team-retro/LICENSE.mattpocock-skills; do
@@ -288,7 +288,7 @@ main() {
   mkdir -p "$out/docs/agents/templates" "$out/docs/agents/scripts" "$out/.agents/skills/team-retro/agents"
   cp "$T/AGENTS.template.md" "$out/AGENTS.md"
   cp "$T/development.template.md" "$out/docs/development.md"
-  for f in team issue-tracker domain onboarding rule-regression rule-log; do cp "$T/$f.template.md" "$out/docs/agents/$f.md"; done
+  for f in team issue-tracker domain onboarding rule-regression rule-log workflow; do cp "$T/$f.template.md" "$out/docs/agents/$f.md"; done
   for f in spec ticket adr journal; do cp "$T/$f.template.md" "$out/docs/agents/templates/$f.template.md"; done
   for f in ticket-status rule-check; do cp "$T/scripts/$f" "$out/docs/agents/scripts/$f"; chmod 755 "$out/docs/agents/scripts/$f"; done
   cp "$T/skills-README.template.md" "$out/.agents/skills/README.md"
@@ -347,7 +347,7 @@ EOF
   local files=(AGENTS.md docs/development.md docs/agents/team.md docs/agents/issue-tracker.md docs/agents/domain.md
     docs/agents/onboarding.md docs/agents/templates/spec.template.md docs/agents/templates/ticket.template.md
     docs/agents/templates/adr.template.md docs/agents/templates/journal.template.md docs/agents/scripts/ticket-status
-    docs/agents/rule-regression.md docs/agents/rule-log.md docs/agents/scripts/rule-check
+    docs/agents/rule-regression.md docs/agents/rule-log.md docs/agents/workflow.md docs/agents/scripts/rule-check
     .agents/skills/README.md .agents/skills/team-retro/SKILL.md .agents/skills/team-retro/agents/openai.yaml
     .agents/skills/team-retro/LICENSE.mattpocock-skills docs/agents/HARNESS-VERSION)
   local create=() same=() newf=() newsame=() ign=() a b
@@ -491,7 +491,7 @@ EOF
   say "  3. 建议配置 CODEOWNERS（如 .gitlab/CODEOWNERS）并对目标分支开启「需要 Code Owner 批准」："
   say "       /AGENTS.md       $owners"
   say "       /.agents/skills/ $owners"
-  say "       /docs/agents/    $owners   （含 rule-regression.md、rule-log.md 与 scripts/）"
+  say "       /docs/agents/    $owners   （含 rule-regression.md、rule-log.md、workflow.md 与 scripts/）"
   say "     并把 main 设为受保护分支（禁止直接推送与强推），在 MR 审批设置中开启「Reset approvals on push」。"
   say "  4. 每位成员按 docs/agents/onboarding.md 完成入组检查，并在 docs/agents/team.md 登记。"
   say "  5. 查看在途工作：git fetch --prune origin && docs/agents/scripts/ticket-status"

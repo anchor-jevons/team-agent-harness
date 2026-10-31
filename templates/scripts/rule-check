@@ -4,11 +4,15 @@
 用法（在 worktree 内）：
     docs/agents/scripts/rule-check [--base <ref>]   # 默认 origin/HEAD，缺省为 origin/main，再缺省为 main
 
-规则文件 = AGENTS.md、docs/agents/ 与 .agents/skills/ 下的文件。比较范围是 base 与 HEAD 的 merge-base
-到当前工作区（含未提交的已跟踪改动和未跟踪的新文件）。预算与记录格式见 docs/agents/rule-log.md，
-回归场景见 docs/agents/rule-regression.md。不修改任何文件。
+规则文件 = AGENTS.md、docs/agents/ 与 .agents/skills/ 下的文件（team.md 名册表格行视为数据）。比较范围是
+base 与 HEAD 的 merge-base 到当前工作区（含未提交的已跟踪改动和未跟踪的新文件）。预算与记录格式见
+docs/agents/rule-log.md，回归场景见 docs/agents/rule-regression.md，流程图见 docs/agents/workflow.md。
+预算取 base 与当前两者中较严的值：提高或删除预算要先单独合入。不修改任何文件。
+审核他人的 MR 时用目标分支上的版本运行，避免分支上被改过的脚本替自己判 PASS：
+    git show origin/main:docs/agents/scripts/rule-check | python3 -
 
-退出码：1 = 本次改动的规则文件超出预算，或规则文件有改动但 rule-log 没有新增记录，或新增记录的来源不可核对；
+退出码：1 = 改动的规则文件超出预算；规则文件有改动但 rule-log 没有新增记录或来源不可核对；流程图超出预算、
+闸门与规则文字不一致或图改了却没有对应的规则文字改动；既有回归场景或检查脚本与规则在同一改动中被修改。
 0 = 其余情况（WARN 项仍需在 MR 描述中逐条说明）。
 """
 import fnmatch
@@ -18,6 +22,9 @@ import subprocess
 import sys
 
 LOG = "docs/agents/rule-log.md"
+FLOW = "docs/agents/workflow.md"
+TRACKER = "docs/agents/issue-tracker.md"
+ROSTER = ("docs/agents/team.md", "成员名册")
 REG = "docs/agents/rule-regression.md"
 CHECKS = (REG, "docs/agents/scripts/", "CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS")
 
@@ -56,6 +63,47 @@ def show(ref, path):
     return r.stdout if r.returncode == 0 else ""
 
 
+def section(text, heading):
+    m = re.search(rf"^## {re.escape(heading)}\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
+    return m.group(1) if m else ""
+
+
+def norm(s):
+    return re.sub(r"\s+", " ", s.replace("**", "").replace("__", "")).strip()
+
+
+def graph(text):
+    """解析 workflow.md 的 mermaid 图：返回 (节点集合, 边集合, 边上的闸门集合, 闸门表, 节点文字)。"""
+    m = re.search(r"```mermaid\n(.*?)```", text, re.S)
+    body = m.group(1) if m else ""
+    nodes, edges, used, labels = set(), set(), set(), {}
+    for line in body.splitlines():
+        line = line.strip()
+        for nid, label in re.findall(r"(\w+)\s*[\[({]+\"?(.*?)\"?[\])}]+", line):
+            nodes.add(nid)
+            labels[nid] = label
+        e = re.match(r"(\w+)\b.*?-->\s*(?:\|\"?(.*?)\"?\|\s*)?(\w+)", line)
+        if e:
+            label = e.group(2) or ""
+            gates = re.findall(r"\bG\d+\b", label)
+            edges.add((e.group(1), e.group(3), " ".join(gates)))
+            used.update(gates)
+            nodes.update((e.group(1), e.group(3)))
+    gates = {c[0]: c for c in table(text, "闸门") if c and re.fullmatch(r"G\d+", c[0])}
+    return nodes, edges, used, gates, labels
+
+
+def roster_only(path, mb):
+    """该文件的改动是否只涉及名册表格行（数据，不是规则）。"""
+    if path != ROSTER[0]:
+        return False
+    diff = git("diff", "-U0", mb, "--", path).splitlines()
+    lines = [l[1:] for l in diff if l[:1] in "+-" and not l.startswith(("+++", "---"))]
+    sec_now = section(open(path, encoding="utf-8").read(), ROSTER[1]) if os.path.exists(path) else ""
+    sec_old = section(show(mb, path), ROSTER[1])
+    return bool(lines) and all(l.startswith("|") and (l in sec_now or l in sec_old) for l in lines)
+
+
 def main():
     args = sys.argv[1:]
     base = args[args.index("--base") + 1] if "--base" in args else None
@@ -81,9 +129,15 @@ def main():
         if os.path.isfile(path):
             changed[path] = (open(path, "rb").read().count(b"\n"), 0)
 
-    print("\n## 预算（当前工作区）")
+    print("\n## 预算（当前工作区；取 base 与当前中较严的值）")
     tracked = set(git("ls-files").split()) | set(git("ls-files", "--others", "--exclude-standard").split())
-    for pattern, max_lines, max_bytes in budgets(log_now):
+    log_base = show(mb, LOG)
+    eff = {p: (l, b) for p, l, b in budgets(log_now)}
+    for p, l, b in budgets(log_base):
+        if p not in eff:
+            warn.append(f"BUDGET-REMOVED：{p} 的预算行被删除；仍按 base 的 {l} 行/{b} 字节检查，删除预算需单独 MR 说明")
+        eff[p] = (min(l, eff.get(p, (l, b))[0]), min(b, eff.get(p, (l, b))[1]))
+    for pattern, (max_lines, max_bytes) in eff.items():
         files = sorted(f for f in tracked if fnmatch.fnmatch(f, pattern) and os.path.isfile(f))
         for f in files or [pattern]:
             if not os.path.isfile(f):
@@ -97,7 +151,9 @@ def main():
                 (fail if f in changed else warn).append(msg if f in changed else msg + "（本次未改动该文件）")
             print(f"{state}\t{f}\t{lines}/{max_lines} 行\t{size}/{max_bytes} 字节")
 
-    rules = {p: v for p, v in changed.items() if is_rule(p) and p != LOG}
+    rules = {p: v for p, v in changed.items() if is_rule(p) and p != LOG and not roster_only(p, mb)}
+    if ROSTER[0] in changed and ROSTER[0] not in rules:
+        print(f"（{ROSTER[0]} 只改了名册表格行，按数据处理）")
     print("\n## 改动（相对 merge-base）")
     if not rules:
         print("规则文件无改动")
@@ -133,6 +189,67 @@ def main():
     for p, l, b in budgets(log_now):
         if p in old_b and (l > old_b[p][0] or b > old_b[p][1]):
             warn.append(f"BUDGET-RAISED：{p} 预算从 {old_b[p][0]} 行/{old_b[p][1]} 字节提高到 {l}/{b}；需单独说明")
+
+
+    print(f"\n## 流程图（{FLOW}）")
+    flow_now = open(FLOW, encoding="utf-8").read() if os.path.exists(FLOW) else ""
+    if not flow_now:
+        print("无流程图")
+    else:
+        nodes, edges, used, gates, labels = graph(flow_now)
+        gb_now = {c[0]: int(c[1]) for c in table(log_now, "流程图预算") if len(c) > 1 and c[1].isdigit()}
+        gb_old = {c[0]: int(c[1]) for c in table(log_base, "流程图预算") if len(c) > 1 and c[1].isdigit()}
+        counts = {"节点": len(nodes), "边": len(edges), "闸门": len(gates)}
+        for k, n in counts.items():
+            cap = min(x for x in (gb_now.get(k), gb_old.get(k)) if x is not None) if (k in gb_now or k in gb_old) else None
+            if k in gb_old and k in gb_now and gb_now[k] > gb_old[k]:
+                warn.append(f"BUDGET-RAISED：流程图{k}预算从 {gb_old[k]} 提高到 {gb_now[k]}；仍按 {gb_old[k]} 检查，需单独 MR 说明")
+            state = "ok" if cap is None or n <= cap else "OVER"
+            print(f"{state}\t{k}\t{n}/{cap if cap is not None else '未设预算'}")
+            if state == "OVER":
+                fail.append(f"流程图{k}数 {n} 超出预算 {cap}：先删除或合并")
+        for g in sorted(used - set(gates)):
+            fail.append(f"GRAPH-RULE-MISMATCH：图中的 {g} 不在闸门表中")
+        for g in sorted(set(gates) - used):
+            fail.append(f"GRAPH-RULE-MISMATCH：闸门表中的 {g} 不在图中的任何边上")
+        for g, c in sorted(gates.items()):
+            src, phrase = (c[2].strip("`"), c[3]) if len(c) > 3 else ("", "")
+            text = open(src, encoding="utf-8").read() if src and os.path.isfile(src) else ""
+            ok = bool(phrase) and norm(phrase.strip("`")) in norm(text) or bool(phrase) and norm(phrase) in norm(text)
+            print(f"{'ok' if ok else 'MISMATCH'}\t{g}\t{src}")
+            if not ok:
+                fail.append(f"GRAPH-RULE-MISMATCH：{g} 的规则原文在 {src or '（未写出处）'} 中找不到；规则文字与流程图须同一 MR 一起改")
+        tracker = open(TRACKER, encoding="utf-8").read() if os.path.exists(TRACKER) else ""
+        for c in table(tracker, "执行状态"):
+            if c and c[0] and not any(re.search(rf"(?<![\w-]){re.escape(c[0])}(?![\w-])", v) for v in labels.values()):
+                fail.append(f"GRAPH-RULE-MISMATCH：tracker 的状态 {c[0]} 没有出现在流程图的节点文字中")
+        flow_old = show(mb, FLOW)
+        if flow_old and flow_old != flow_now:
+            n0, e0, _, g0, l0 = graph(flow_old)
+            dn = (nodes - n0, n0 - nodes)
+            relabel = {n for n in nodes & n0 if labels.get(n) != l0.get(n)}
+            regate = {g for g in set(gates) & set(g0) if gates[g] != g0[g]}
+            de = (edges - e0, e0 - edges)
+            dg = (set(gates) - set(g0), set(g0) - set(gates))
+            size = sum(len(x) for pair in (dn, de, dg) for x in pair) + len(relabel) + len(regate)
+            print(f"GRAPH-DIFF\t节点 +{len(dn[0])}/-{len(dn[1])}/~{len(relabel)}\t边 +{len(de[0])}/-{len(de[1])}"
+                  f"\t闸门 +{len(dg[0])}/-{len(dg[1])}/~{len(regate)}")
+            for tag, items in (("+节点", dn[0]), ("-节点", dn[1]), ("~节点", relabel), ("+闸门", dg[0]), ("-闸门", dg[1]), ("~闸门", regate)):
+                for i in sorted(items):
+                    print(f"  {tag} {i}")
+            for tag, items in (("+边", de[0]), ("-边", de[1])):
+                for a, b, g in sorted(items):
+                    print(f"  {tag} {a}→{b}" + (f" [{g}]" if g else ""))
+            if size > 4:
+                warn.append(f"GRAPH-DIFF-LARGE：流程图改动了 {size} 个元素；拆成每次增删一个节点、边或闸门的小提案")
+            others = [p for p in rules if p != FLOW]
+            if not others:
+                fail.append("流程图有改动，但没有对应的规则文字改动（team.md、issue-tracker.md 等）")
+
+    edited_checks = [p for p in touched_checks if changed[p][1] > 0]
+    weakening = [p for p in rules if p not in touched_checks]
+    if edited_checks and weakening:
+        fail.append("既有检查（" + "、".join(edited_checks) + "）与规则文件在同一改动中被修改；修改检查本身要单独 MR")
 
     print("\n## 需要运行的回归场景（按触及文件匹配，见 " + REG + "）")
     scenarios = []

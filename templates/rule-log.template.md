@@ -4,7 +4,7 @@
 
 ## 预算
 
-规则文件会进入每位成员的 agent 上下文，越长越难被遵守。超出预算时先删除或合并，再新增；提高预算单独说明理由（`rule-check` 标为 BUDGET-RAISED）。起始值约为部署时大小加 15%，按团队实际情况调整。`*` 表示每个匹配的文件各自计算。
+规则文件会进入每位成员的 agent 上下文，越长越难被遵守。超出预算时先删除或合并，再新增；提高或删除预算要单独 MR 说明理由；合入前 `rule-check` 仍按原值检查（标为 BUDGET-RAISED 或 BUDGET-REMOVED）。起始值约为部署时大小加 15%，按团队实际情况调整。`*` 表示每个匹配的文件各自计算。
 
 | 文件 | 行数上限 | 字节上限 |
 | --- | --- | --- |
@@ -13,7 +13,18 @@
 | docs/agents/issue-tracker.md | 100 | 10500 |
 | docs/agents/domain.md | 22 | 1600 |
 | docs/agents/onboarding.md | 32 | 2200 |
+| docs/agents/workflow.md | 60 | 6500 |
 | .agents/skills/*/SKILL.md | 150 | 12000 |
+
+## 流程图预算
+
+`docs/agents/workflow.md` 的复杂度上限。只能通过单独说明的 MR 提高；`rule-check` 按 base 与当前中较小的值检查。
+
+| 元素 | 上限 |
+| --- | --- |
+| 节点 | 18 |
+| 边 | 26 |
+| 闸门 | 15 |
 
 ## 记录
 

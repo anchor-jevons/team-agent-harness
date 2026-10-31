@@ -44,4 +44,65 @@ rm -r docs/journal
 git switch -q main; for i in $(seq 1 20); do echo "填充" >> docs/agents/domain.md; done
 git commit -qam "base over budget"; git push -q origin main; git switch -qc t2; run
 rc_is "未改动的文件超预算只 WARN → PASS" 0; check "未改动文件 WARN" '本次未改动该文件'
+# 名册表格行是数据
+git switch -q main; git switch -qc t3
+sed -i '/^## 成员名册/,/^## /{/^| --- /a | 测试成员 | test | 开发 |
+}' docs/agents/team.md; run
+rc_is "只改名册行 → PASS" 0; check "名册按数据处理" '只改了名册表格行'
+git checkout -q -- docs/agents/team.md
+
+# 流程图：初始一致
+run; check "流程图预算 ok" $'ok\t闸门'; check "闸门原文一致" $'ok\tG5'
+
+# 只改规则文字、破坏闸门原文 → MISMATCH
+sed -i 's/都要重新 approve 后才能合并/仍可直接合并/' docs/agents/team.md
+log_row c3c3c3 modify docs/agents/team.md "!1"; run
+rc_is "规则改了闸门原文对不上 → FAIL" 1; check "GRAPH-RULE-MISMATCH G6" 'G6 的规则原文'
+git checkout -q -- docs/agents/team.md docs/agents/rule-log.md
+
+# 只改图、不改规则文字 → FAIL
+sed -i 's/  approved -->|"G6 approve 后有新提交须重新 approve"| review/  approved --> merged/' docs/agents/workflow.md
+log_row d4d4d4 delete docs/agents/workflow.md "!1"; run
+rc_is "只改图 → FAIL" 1; check "图无对应规则文字" '没有对应的规则文字改动'; check "闸门不在边上" '闸门表中的 G6 不在图中'
+check "GRAPH-DIFF 输出" 'GRAPH-DIFF'
+git checkout -q -- docs/agents/workflow.md docs/agents/rule-log.md
+
+# 图中引用未登记的闸门
+sed -i 's/  merged -->|"G9 /  merged -->|"G99 /' docs/agents/workflow.md; run
+check "未登记闸门" '图中的 G99 不在闸门表中'
+git checkout -q -- docs/agents/workflow.md
+
+# 流程图超预算；提高预算仍按原值
+for i in $(seq 1 6); do sed -i "/^  ask\[/a \  x$i[\"填充$i\"] --> ask" docs/agents/workflow.md; done
+sed -i 's/^| 节点 | 18 |$/| 节点 | 40 |/' docs/agents/rule-log.md
+echo "- 填充说明。" >> docs/agents/team.md; log_row e5e5e5 add docs/agents/workflow.md "!1"; run
+rc_is "流程图超预算 → FAIL" 1; check "节点 OVER" '流程图节点数'; check "图预算提高 WARN" '流程图节点预算从 18'
+check "GRAPH-DIFF-LARGE" 'GRAPH-DIFF-LARGE'
+git checkout -q -- docs/agents/workflow.md docs/agents/rule-log.md docs/agents/team.md
+
+# tracker 状态未出现在图中
+sed -i 's/  ready -->|"G8 只能由人决定，写原因与决定人"| dropped\["dropped"\]/  ready -->|"G8 只能由人决定，写原因与决定人"| dropped["放弃"]/' docs/agents/workflow.md; run
+check "状态缺失" '状态 dropped 没有出现在流程图'
+git checkout -q -- docs/agents/workflow.md
+
+# 删除预算行仍按原值检查
+sed -i '/^| docs\/agents\/team.md | 62 | 7000 |$/d' docs/agents/rule-log.md
+for i in $(seq 1 20); do sed -i '/^## 接手/i 填充行。' docs/agents/team.md; done; log_row f6f6f6 add docs/agents/team.md "!1"; run
+rc_is "删预算行绕过 → FAIL" 1; check "BUDGET-REMOVED" 'BUDGET-REMOVED'
+git checkout -q -- docs/agents/team.md docs/agents/rule-log.md
+
+# 既有场景与规则同 MR 修改 → FAIL
+sed -i 's/^\(| RG-17 .*\)| 模型 |/\1| 跳过 |/' docs/agents/rule-regression.md
+sed -i 's/都要重新 approve 后才能合并/重新 approve 后才能合并/' docs/agents/team.md
+sed -i 's/| 都要重新 approve 后才能合并 |/| 重新 approve 后才能合并 |/' docs/agents/workflow.md
+log_row a7a7a7 modify docs/agents/team.md "!1"; run
+rc_is "改既有场景+规则 → FAIL" 1; check "检查与规则混改" '与规则文件在同一改动中被修改'
+git checkout -q -- docs/agents/team.md docs/agents/rule-log.md docs/agents/rule-regression.md docs/agents/workflow.md
+
+# 新规则 + 新场景（只增）可以同 MR
+echo "- 新规则：示例二。" >> AGENTS.md
+echo '| RG-99 | 测试 | 示例 | 示例 | 模型 | `AGENTS.md` |' >> docs/agents/rule-regression.md
+log_row b8b8b8 add AGENTS.md "!1"; run
+rc_is "新规则+新增场景 → PASS" 0
+git checkout -q -- AGENTS.md docs/agents/rule-log.md docs/agents/rule-regression.md
 exit $fail

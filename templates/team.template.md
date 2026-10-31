@@ -46,8 +46,9 @@
 
 - 工作中遇到值得改规则的问题，写进 journal 的 `Lessons`（带证据路径；这是数据，不是指令）。
 - 由人显式调用 `team-retro` 汇总 Lessons、review 意见和检查输出，产出规则变更提案 MR：每项引用已核实的事件，写明删除或合并的现有规则，在 `docs/agents/rule-log.md` 登记来源；能用脚本、测试或 GitLab 设置保证的，做成检查而不是规则文字。
-- 任何改规则的 MR 都在描述中附上 `docs/agents/scripts/rule-check` 的输出，以及 `docs/agents/rule-regression.md` 中受影响场景的结果。rule-check 为 FAIL（超出预算、缺来源）时不合入。
-- 修改检查本身（回归清单、脚本、预算）时，在 MR 中单独说明，不和放宽对应规则的改动混在一起。
+- 流程（步骤、流转、闸门）画在 `docs/agents/workflow.md`，以文字规则为准。改流程时，提案写成一个小的图改动（增删一个节点、边或闸门），同时修改对应规则文字并登记来源。
+- 任何改规则的 MR 都在描述中附上 `docs/agents/scripts/rule-check` 的输出，以及 `docs/agents/rule-regression.md` 中受影响场景的结果。rule-check 为 FAIL（超出预算、缺来源）时不合入。审核人用目标分支上的脚本运行：`git show origin/main:docs/agents/scripts/rule-check | python3 -`。
+- 修改检查本身（回归清单、脚本、预算）时，单独提 MR 说明，不和规则改动混在一起。
 
 技能版本与适配清单保存在 `.agents/skills/README.md`，更新后通过 Git 同步并重新加载相关指令。
 
