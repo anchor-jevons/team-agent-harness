@@ -91,7 +91,7 @@ repo-name/                              # 当前 checkout / worktree 根
 | 阶段事实与下一步 | docs/journal/member/ | 工作成员，agent 代写 |
 | 正式 review、批准、合并结果 | GitLab MR | 团队现有审查流程 |
 
-team.md 不重复状态表、日志模板或编码规范。Journal 字段只在 [journal 模板](../templates/journal.template.md)定义（目标仓库中复制到 `docs/agents/templates/`），team-record-session 引用它而不另写一份；技能未安装时按该模板手写。规则/技能版本变化通过 MR 形成新基线；单次 agent 偏好不能直接成为全团队长期约束。规则演进的回路是 journal `Lessons` → 人调用 `team-retro` → 提案 MR（引用已核实事件、先删后加、登记来源）→ `rule-check` 与回归清单 → 人 review 合入；不自动改写规则文件。流程另画成带版本的 mermaid 图（`workflow.md`），每个闸门指向一句规则原文，`rule-check` 检查图与文字一致并限制节点、边、闸门数量；流程改动写成小的图改动加对应规则文字，不做自动的图搜索（GPTSwarm/AFlow/ADAS 一类需要可自动评分的验证集，代价高，产物难以审核）。依据见 2026-10-31 的自我演进调研（[审查与取舍](review-summary.md#2026-10-31-规则自我演进回路)）。
+team.md 不重复状态表、日志模板或编码规范。Journal 字段只在 [journal 模板](../templates/journal.template.md)定义（目标仓库中复制到 `docs/agents/templates/`），team-record-session 引用它而不另写一份；技能未安装时按该模板手写。规则/技能版本变化通过 MR 形成新基线；单次 agent 偏好不能直接成为全团队长期约束。规则演进的回路是 journal `Lessons` → 人调用 `team-retro` → 提案 MR（引用已核实事件、先删后加、登记来源）→ `rule-check` 与回归清单 → 人 review 合入；不自动改写规则文件。流程另画成带版本的 mermaid 图（`workflow.md`），每个闸门指向一句规则原文，规则中的流程句带 `flow` 标记，`rule-check` 双向检查图与文字一致并限制节点、边、闸门数量（闸门上限固定为 15）；流程改动写成小的图改动加对应规则文字，不做自动的图搜索（GPTSwarm/AFlow/ADAS 一类需要可自动评分的验证集，代价高，产物难以审核）。依据见 2026-10-31 的自我演进调研（[审查与取舍](review-summary.md#2026-10-31-规则自我演进回路)）。
 
 ## AGENTS.md 的建议入口
 

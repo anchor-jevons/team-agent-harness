@@ -9,8 +9,8 @@
 | 文件 | 行数上限 | 字节上限 |
 | --- | --- | --- |
 | AGENTS.md | 45 | 4500 |
-| docs/agents/team.md | 62 | 7000 |
-| docs/agents/issue-tracker.md | 100 | 10500 |
+| docs/agents/team.md | 64 | 8000 |
+| docs/agents/issue-tracker.md | 100 | 10900 |
 | docs/agents/domain.md | 22 | 1600 |
 | docs/agents/onboarding.md | 32 | 2200 |
 | docs/agents/workflow.md | 60 | 6500 |
@@ -18,7 +18,7 @@
 
 ## 流程图预算
 
-`docs/agents/workflow.md` 的复杂度上限。只能通过单独说明的 MR 提高；`rule-check` 按 base 与当前中较小的值检查。
+`docs/agents/workflow.md` 的复杂度上限。`rule-check` 按 base 与当前中较小的值检查。节点与边的上限只能通过单独说明的 MR 提高；闸门上限固定为 15，不提高：新增闸门只经 `team-retro` 提案，并写明删除或合并哪个闸门（`rule-check` 对没有同时删除闸门的新增给出 GATE-ADDED）。
 
 | 元素 | 上限 |
 | --- | --- |

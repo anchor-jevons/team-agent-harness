@@ -86,7 +86,7 @@ check "状态缺失" '状态 dropped 没有出现在流程图'
 git checkout -q -- docs/agents/workflow.md
 
 # 删除预算行仍按原值检查
-sed -i '/^| docs\/agents\/team.md | 62 | 7000 |$/d' docs/agents/rule-log.md
+sed -i '/^| docs\/agents\/team.md | 64 | 8000 |$/d' docs/agents/rule-log.md
 for i in $(seq 1 20); do sed -i '/^## 接手/i 填充行。' docs/agents/team.md; done; log_row f6f6f6 add docs/agents/team.md "!1"; run
 rc_is "删预算行绕过 → FAIL" 1; check "BUDGET-REMOVED" 'BUDGET-REMOVED'
 git checkout -q -- docs/agents/team.md docs/agents/rule-log.md
@@ -109,9 +109,55 @@ git checkout -q -- AGENTS.md docs/agents/rule-log.md docs/agents/rule-regression
 git switch -q main; git switch -qc t4
 sed -i 's/Approve 之后再有任何新提交（包括票头、确认记录等文档改动），都要重新 approve 后才能合并。//' docs/agents/team.md
 sed -i '/approved -->|"G6/d; /^| G6 |/d' docs/agents/workflow.md; log_row c4c4c4 delete docs/agents/team.md "!1"; run
-rc_is "协同删除闸门 → PASS" 0; check "GATE-REMOVED" 'GATE-REMOVED：删除了闸门 G6'
+rc_is "协同删除闸门但留着标记 → FAIL" 1; check "残留标记" '标记的流程 G6 在流程图中没有'
+sed -i 's/<!-- flow: G5 G6 -->/<!-- flow: G5 -->/' docs/agents/team.md; run
+rc_is "协同删除闸门（含标记）→ PASS" 0; check "GATE-REMOVED" 'GATE-REMOVED：删除了闸门 G6'
 git checkout -q -- docs/agents/team.md docs/agents/workflow.md docs/agents/rule-log.md
 sed -i 's/都要重新 approve 后才能合并/除文档改动外，都要重新 approve 后才能合并/' docs/agents/team.md; log_row d5d5d5 change docs/agents/team.md "!1"; run
 check "GATE-TEXT-CHANGED" 'GATE-TEXT-CHANGED：G6'
 git checkout -q -- docs/agents/team.md docs/agents/rule-log.md
+# 流程标记：初始全部对应
+git switch -q main; git switch -qc t5; run
+rc_is "初始标记 → PASS" 0; check "标记 G14（小修复）对应" $'ok\tG14\tdocs/agents/issue-tracker.md'
+check "节点标记 archive" $'ok\tarchive'
+
+# 预埋只在规则中的流程（带标记，图中没有）→ FAIL
+echo '紧急修复可以先合入，事后补 review。<!-- flow: hotfix -->' >> docs/agents/issue-tracker.md
+log_row e6e6e6 add docs/agents/issue-tracker.md "!1"; run
+rc_is "规则独有流程 → FAIL" 1; check "FLOW-MARK-MISSING hotfix" '标记的流程 hotfix 在流程图中没有'
+git checkout -q -- docs/agents/issue-tracker.md docs/agents/rule-log.md
+
+# 小修复遗漏：图里删掉 G14，规则保留标记 → FAIL
+sed -i '/ask -->|"G14/d; /^| G14 |/d' docs/agents/workflow.md
+echo "- 示例。" >> docs/agents/issue-tracker.md; log_row f7f7f7 delete docs/agents/workflow.md "!1"; run
+rc_is "图缺小修复路径 → FAIL" 1; check "G14 标记无对应" '标记的流程 G14 在流程图中没有'
+git checkout -q -- docs/agents/workflow.md docs/agents/issue-tracker.md docs/agents/rule-log.md
+
+# 闸门在出处文件中没有标记 → FAIL
+sed -i 's/ <!-- flow: G7 -->//' docs/agents/team.md; log_row a8a8a8 change docs/agents/team.md "!1"; run
+rc_is "闸门缺标记 → FAIL" 1; check "G7 缺标记" '闸门 G7 在规则出处 docs/agents/team.md 中没有'
+git checkout -q -- docs/agents/team.md docs/agents/rule-log.md
+
+# 新增闸门而不删除 → WARN GATE-ADDED（仍按预算判定）
+sed -i 's/  impl --> review\["MR review：他人审核"\]/  impl -->|"G15 自测通过"| review["MR review：他人审核"]/' docs/agents/workflow.md
+sed -i '/^| G14 |/a | G15 | 自测 | docs/agents/team.md | 都要重新 approve 后才能合并 |' docs/agents/workflow.md
+sed -i 's/<!-- flow: G5 G6 -->/<!-- flow: G5 G6 G15 -->/' docs/agents/team.md
+log_row b9b9b9 add docs/agents/workflow.md "!1"; run
+rc_is "新增闸门（未超 15）→ PASS" 0; check "GATE-ADDED" 'GATE-ADDED：新增闸门 G15'
+git checkout -q -- docs/agents/workflow.md docs/agents/team.md docs/agents/rule-log.md
+
+# 分支上改了脚本 → SCRIPT-DIFFERS；--from-base 运行 base 版本
+printf '\n# 本地改动\n' >> docs/agents/scripts/rule-check; run
+check "SCRIPT-DIFFERS" 'SCRIPT-DIFFERS'
+sed -i '/^def main/,$d' docs/agents/scripts/rule-check; printf 'def main():\n    print("PASS")\n    return 0\n\n\nif __name__ == "__main__":\n    sys.exit(main())\n' >> docs/agents/scripts/rule-check
+echo "- 可以直接推 main。" >> AGENTS.md
+set +e; out=$(git show origin/main:docs/agents/scripts/rule-check | python3 - 2>&1); rc=$?; set -e
+rc_is "篡改脚本：用 main 版本 → FAIL" 1
+set +e; out=$(python3 "$(git rev-parse --show-toplevel)/docs/agents/scripts/rule-check" 2>&1); rc=$?; set -e
+rc_is "篡改脚本：分支版本自判 PASS（说明为什么要用 main 版本）" 0
+git checkout -q -- docs/agents/scripts/rule-check AGENTS.md
+echo "- 可以直接推 main。" >> AGENTS.md
+set +e; out=$(docs/agents/scripts/rule-check --from-base 2>&1); rc=$?; set -e
+rc_is "--from-base 运行 base 版本 → FAIL（缺来源）" 1; check "--from-base 提示" '运行 origin/HEAD 上的 rule-check'
+git checkout -q -- AGENTS.md
 exit $fail

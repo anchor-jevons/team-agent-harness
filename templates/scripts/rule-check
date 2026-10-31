@@ -3,13 +3,16 @@
 
 用法（在 worktree 内）：
     docs/agents/scripts/rule-check [--base <ref>]   # 默认 origin/HEAD，缺省为 origin/main，再缺省为 main
+    docs/agents/scripts/rule-check --from-base [--base <ref>]   # 改为运行 base 上的本脚本（git show）
 
 规则文件 = AGENTS.md、docs/agents/ 与 .agents/skills/ 下的文件（team.md 名册表格行视为数据）。比较范围是
 base 与 HEAD 的 merge-base 到当前工作区（含未提交的已跟踪改动和未跟踪的新文件）。预算与记录格式见
 docs/agents/rule-log.md，回归场景见 docs/agents/rule-regression.md，流程图见 docs/agents/workflow.md。
 预算取 base 与当前两者中较严的值：提高或删除预算要先单独合入。不修改任何文件。
-审核他人的 MR 时用目标分支上的版本运行，避免分支上被改过的脚本替自己判 PASS：
+检查一律运行目标分支上的版本，避免分支上被改过的脚本替自己判 PASS。审核人直接用：
     git show origin/main:docs/agents/scripts/rule-check | python3 -
+（--from-base 是同义的快捷方式，但它本身由当前分支的脚本解释；审核时以上面的命令为准。）
+规则文字中的流程步骤带 `<!-- flow: <节点或闸门 ID> -->` 标记；标记与 workflow.md 双向核对。
 
 退出码：1 = 改动的规则文件超出预算；规则文件有改动但 rule-log 没有新增记录或来源不可核对；流程图超出预算、
 闸门与规则文字不一致或图改了却没有对应的规则文字改动；既有回归场景或检查脚本与规则在同一改动中被修改。
@@ -115,7 +118,23 @@ def main():
     os.chdir(git("rev-parse", "--show-toplevel").strip())
     mb = git("merge-base", base, "HEAD").strip()
     fail, warn = [], []
+    if "--from-base" in args:
+        src = show(base, "docs/agents/scripts/rule-check")
+        if not src:
+            sys.exit(f"base {base} 上没有 docs/agents/scripts/rule-check")
+        rest = [a for a in args if a != "--from-base"]
+        if "--base" not in rest:
+            rest += ["--base", base]
+        print(f"（运行 {base} 上的 rule-check）", flush=True)
+        return subprocess.run([sys.executable, "-", *rest], input=src, text=True).returncode
     print(f"rule-check base={base} merge-base={mb[:12]} head={git('rev-parse', '--short=12', 'HEAD').strip()}")
+    me = os.path.abspath(__file__) if "__file__" in globals() and os.path.isfile(__file__) else None
+    base_src = show(base, "docs/agents/scripts/rule-check")
+    if me and not base_src:
+        print(f"（{base} 上还没有 rule-check，运行的是当前分支的版本）")
+    elif me and open(me, encoding="utf-8").read() != base_src:
+        warn.append(f"SCRIPT-DIFFERS：正在运行的 rule-check 与 {base} 上的版本不同；审核时用 "
+                    f"`git show {base}:docs/agents/scripts/rule-check | python3 -`")
 
     log_now = open(LOG, encoding="utf-8").read() if os.path.exists(LOG) else ""
     if not log_now:
@@ -222,18 +241,34 @@ def main():
         _, _, _, g_base, _ = graph(show(mb, FLOW))
         for g, c in sorted(g_base.items()):
             if g not in gates:
-                warn.append(f"GATE-REMOVED：删除了闸门 {g}（{c[1] if len(c) > 1 else ''}）；确认对应规则是有意删除，并跑相关回归场景")
+                warn.append(f"GATE-REMOVED：删除了闸门 {g}（{c[1] if len(c) > 1 else ''}）；确认对应规则是有意删除，并跑相关回归场景；reviewer 在 MR 中写明接受理由")
                 continue
             src, phrase = (c[2].strip("`"), norm(c[3].strip("`"))) if len(c) > 3 else ("", "")
             def around(text):
                 return {s for s in re.split(r"[。；\n]", norm(text).replace(" - ", "\n")) if phrase and phrase in s}
             old_s, new_s = around(show(mb, src)), around(open(src, encoding="utf-8").read() if os.path.isfile(src) else "")
             if old_s and new_s and old_s != new_s:
-                warn.append(f"GATE-TEXT-CHANGED：{g} 所在的规则句被修改（{src}）；原文仍在，但可能被加了限定或例外，逐字核对")
+                warn.append(f"GATE-TEXT-CHANGED：{g} 所在的规则句被修改（{src}）；原文仍在，但可能被加了限定或例外，逐字核对；reviewer 在 MR 中写明接受理由")
         tracker = open(TRACKER, encoding="utf-8").read() if os.path.exists(TRACKER) else ""
         for c in table(tracker, "执行状态"):
             if c and c[0] and not any(re.search(rf"(?<![\w-]){re.escape(c[0])}(?![\w-])", v) for v in labels.values()):
                 fail.append(f"GRAPH-RULE-MISMATCH：tracker 的状态 {c[0]} 没有出现在流程图的节点文字中")
+        print("\n## 流程标记（规则文字 ↔ 流程图）")
+        marks = {}
+        for f in sorted(tracked):
+            if f.endswith(".md") and is_rule(f) and f not in (FLOW, LOG, REG) and os.path.isfile(f):
+                for ids in re.findall(r"<!-- flow: ([\w -]+?) -->", open(f, encoding="utf-8").read()):
+                    for i in ids.split():
+                        marks.setdefault(i, set()).add(f)
+        for i, fs in sorted(marks.items()):
+            ok = i in nodes or i in gates
+            print(f"{'ok' if ok else 'MISSING'}\t{i}\t{'、'.join(sorted(fs))}")
+            if not ok:
+                fail.append(f"FLOW-MARK-MISSING：{'、'.join(sorted(fs))} 中标记的流程 {i} 在流程图中没有对应的节点或闸门；先改图，或删去标记与规则")
+        for g, c in sorted(gates.items()):
+            src = c[2].strip("`") if len(c) > 2 else ""
+            if src not in marks.get(g, set()):
+                fail.append(f"FLOW-MARK-MISSING：闸门 {g} 在规则出处 {src or '（未写）'} 中没有 `<!-- flow: {g} -->` 标记")
         flow_old = show(mb, FLOW)
         if flow_old and flow_old != flow_now:
             n0, e0, _, g0, l0 = graph(flow_old)
@@ -251,6 +286,9 @@ def main():
             for tag, items in (("+边", de[0]), ("-边", de[1])):
                 for a, b, g in sorted(items):
                     print(f"  {tag} {a}→{b}" + (f" [{g}]" if g else ""))
+            if len(dg[0]) > len(dg[1]):
+                warn.append("GATE-ADDED：新增闸门 " + "、".join(sorted(dg[0])) + " 而没有删除或合并同样多的闸门；"
+                            "闸门上限固定为 15，新增须经 team-retro 提案写明删除或合并哪个闸门，reviewer 在 MR 中写明接受理由")
             if size > 4:
                 warn.append(f"GRAPH-DIFF-LARGE：流程图改动了 {size} 个元素；拆成每次增删一个节点、边或闸门的小提案")
             others = [p for p in rules if p != FLOW]
