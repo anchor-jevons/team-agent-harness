@@ -10,7 +10,7 @@ N 为陈旧天数，默认 7，与 docs/agents/issue-tracker.md 一致。成员 
   FAIL STALE-BRANCH    当前分支（或其上游）是一张 in-progress 票的 Branch:，该票 Owner 不是你，且分支陈旧
                        （最近提交超过 N 天）或 Owner 不在 docs/agents/team.md 名册中（已离开）。
   FAIL FROM-STALE      HEAD 包含上述分支上尚未进入目标分支的提交（从陈旧分支开出或合入了它）。
-  FAIL JOURNAL-LESSONS 相对目标分支新增或修改的 docs/journal/**.md 缺少 `## Lessons` 节或该节为空
+  FAIL JOURNAL-LESSONS 本次将推送的提交（相对远端同名分支，没有则相对目标分支）中新增或修改的 docs/journal/**.md 缺少 `## Lessons` 节或该节为空
                        （没有教训时写一行 `none`）。
   WARN OTHER-OWNER     当前分支的票 Owner 是名册中的其他成员：只有用户在当前会话明确要求接手该 MR 时才推送。
 有 FAIL 时退出码为 1：不要推送，把输出报告给用户。陈旧分支只报告，由人决定改派或 dropped；
@@ -99,8 +99,10 @@ for ref in refs:
         elif not stale and name in mine:
             warns.append(f"OTHER-OWNER\t{name}\t{path}\t{why}：只有用户在当前会话明确要求接手该 MR 时才推送（见 docs/agents/team.md 的“接手”）")
 
-mb = git("merge-base", target, "HEAD", check=False).strip()
-changed = git("diff", "--name-only", "--diff-filter=AM", f"{mb}..HEAD", "--", "docs/journal").split() if mb else []
+# 只看本次将推送的提交：远端已有同名分支时相对它，否则相对与目标分支的 merge-base
+pushed = PREFIX + cur if cur and PREFIX + cur in refs else ""
+since = git("merge-base", pushed, "HEAD", check=False).strip() if pushed else git("merge-base", target, "HEAD", check=False).strip()
+changed = git("diff", "--name-only", "--diff-filter=AM", f"{since}..HEAD", "--", "docs/journal").split() if since else []
 for path in changed:
     if not path.endswith(".md"):
         continue

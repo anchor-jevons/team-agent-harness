@@ -45,6 +45,10 @@ printf '\n## Lessons\n\n<必填>\n' >> docs/journal/raj/2026-10-31-abcdef-j.md; 
 run --member raj; check "只有占位符 → JOURNAL-LESSONS" $'FAIL\tJOURNAL-LESSONS'
 sed -i.bak 's/^<必填>$/none/' docs/journal/raj/2026-10-31-abcdef-j.md; rm -f docs/journal/raj/*.bak; git commit -qam j3
 run --member raj; check "Lessons: none → PASS" $'RESULT\tPASS'
+# 已推送的旧 journal 缺 Lessons 不再报告；只看将推送的提交
+git push -q origin feature/j; git fetch -q origin; git switch -q feature/j
+printf '# k\n\n## Next\n\nz\n' > docs/journal/raj/2026-10-31-bbbbbb-k.md; git add -A; git commit -qm j4
+run --member raj; check "新 journal 缺 Lessons → FAIL" 'bbbbbb-k.md'; checkno "已推送的 journal 不报" 'abcdef-j.md'
 # 名册里的 mei 本人在自己的分支上 → 不报
 git switch -q feature/b; run --member mei; checkno "Owner 本人不报" 'OTHER-OWNER'
 exit $fail
