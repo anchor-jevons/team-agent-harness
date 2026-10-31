@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""规则改动的只读检查：预算、来源记录、只增不减、检查本身被改，以及需要运行的回归场景。
+
+用法（在 worktree 内）：
+    docs/agents/scripts/rule-check [--base <ref>]   # 默认 origin/HEAD，缺省为 origin/main，再缺省为 main
+
+规则文件 = AGENTS.md、docs/agents/ 与 .agents/skills/ 下的文件。比较范围是 base 与 HEAD 的 merge-base
+到当前工作区（含未提交的已跟踪改动和未跟踪的新文件）。预算与记录格式见 docs/agents/rule-log.md，
+回归场景见 docs/agents/rule-regression.md。不修改任何文件。
+
+退出码：1 = 本次改动的规则文件超出预算，或规则文件有改动但 rule-log 没有新增记录，或新增记录的来源不可核对；
+0 = 其余情况（WARN 项仍需在 MR 描述中逐条说明）。
+"""
+import fnmatch
+import os
+import re
+import subprocess
+import sys
+
+LOG = "docs/agents/rule-log.md"
+REG = "docs/agents/rule-regression.md"
+CHECKS = (REG, "docs/agents/scripts/", "CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS")
+
+
+def git(*args, check=True):
+    return subprocess.run(["git", *args], capture_output=True, text=True, check=check).stdout
+
+
+def is_rule(path):
+    return path == "AGENTS.md" or path.startswith(("docs/agents/", ".agents/skills/"))
+
+
+def table(text, heading):
+    """返回某个二级标题下 Markdown 表格的数据行（单元格列表）。"""
+    m = re.search(rf"^## {re.escape(heading)}\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
+    rows = []
+    for line in (m.group(1) if m else "").splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if line.lstrip().startswith("|") and not set("".join(cells)) <= set("-: "):
+            rows.append(cells)
+    return rows[1:]  # 去掉表头
+
+
+def budgets(text):
+    out = []
+    for cells in table(text, "预算"):
+        try:
+            out.append((cells[0].strip("`"), int(cells[1]), int(cells[2])))
+        except (IndexError, ValueError):
+            pass
+    return out
+
+
+def show(ref, path):
+    r = subprocess.run(["git", "show", f"{ref}:{path}"], capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 else ""
+
+
+def main():
+    args = sys.argv[1:]
+    base = args[args.index("--base") + 1] if "--base" in args else None
+    if not base:
+        for cand in ("origin/HEAD", "origin/main", "main"):
+            if subprocess.run(["git", "rev-parse", "-q", "--verify", cand], capture_output=True).returncode == 0:
+                base = cand
+                break
+    os.chdir(git("rev-parse", "--show-toplevel").strip())
+    mb = git("merge-base", base, "HEAD").strip()
+    fail, warn = [], []
+    print(f"rule-check base={base} merge-base={mb[:12]} head={git('rev-parse', '--short=12', 'HEAD').strip()}")
+
+    log_now = open(LOG, encoding="utf-8").read() if os.path.exists(LOG) else ""
+    if not log_now:
+        fail.append(f"缺少 {LOG}")
+
+    changed = {}
+    for line in git("diff", "--numstat", mb).splitlines():
+        add, rem, path = line.split("\t", 2)
+        changed[path] = (int(add) if add != "-" else 0, int(rem) if rem != "-" else 0)
+    for path in git("ls-files", "--others", "--exclude-standard").split():
+        if os.path.isfile(path):
+            changed[path] = (open(path, "rb").read().count(b"\n"), 0)
+
+    print("\n## 预算（当前工作区）")
+    tracked = set(git("ls-files").split()) | set(git("ls-files", "--others", "--exclude-standard").split())
+    for pattern, max_lines, max_bytes in budgets(log_now):
+        files = sorted(f for f in tracked if fnmatch.fnmatch(f, pattern) and os.path.isfile(f))
+        for f in files or [pattern]:
+            if not os.path.isfile(f):
+                print(f"MISSING\t{f}")
+                continue
+            data = open(f, "rb").read()
+            lines, size = data.count(b"\n"), len(data)
+            state = "ok" if lines <= max_lines and size <= max_bytes else "OVER"
+            if state == "OVER":
+                msg = f"{f} 超出预算（{lines}/{max_lines} 行，{size}/{max_bytes} 字节）：先删除或合并"
+                (fail if f in changed else warn).append(msg if f in changed else msg + "（本次未改动该文件）")
+            print(f"{state}\t{f}\t{lines}/{max_lines} 行\t{size}/{max_bytes} 字节")
+
+    rules = {p: v for p, v in changed.items() if is_rule(p) and p != LOG}
+    print("\n## 改动（相对 merge-base）")
+    if not rules:
+        print("规则文件无改动")
+    for p, (a, r) in sorted(rules.items()):
+        print(f"{p}\t+{a}\t-{r}")
+
+    old_rows = {c[0] for c in table(show(mb, LOG), "记录") if c and c[0].startswith("RL-")}
+    new_rows = [c for c in table(log_now, "记录") if c and c[0].startswith("RL-") and c[0] not in old_rows]
+    print(f"\n## 来源记录（{LOG} 新增 {len(new_rows)} 行）")
+    for c in new_rows:
+        rid, op = c[0], (c[1] if len(c) > 1 else "")
+        evidence = c[4] if len(c) > 4 else ""
+        refs = re.findall(r"!\d+", evidence)
+        paths = [t for t in re.findall(r"[\w.\-]+(?:/[\w.\-]+)+", evidence) if os.path.exists(t) or show("HEAD", t)]
+        ok = bool(refs or paths) or op == "baseline"
+        print(f"{'ok' if ok else 'NO-EVIDENCE'}\t{rid}\t{op}\t{evidence}")
+        if not ok:
+            fail.append(f"{rid} 的来源证据无法核对：写当前仓库中存在的文件路径或 MR 编号（!N）")
+    if rules and not new_rows:
+        fail.append(f"规则文件有改动，但 {LOG} 没有新增记录（每项改动登记 ID、操作、位置、来源与回归结果）")
+
+    added = sum(a for a, _ in rules.values())
+    removed = sum(r for _, r in rules.values())
+    ops = {c[1] for c in new_rows if len(c) > 1}
+    if added and not removed and not ops & {"merge", "delete"}:
+        warn.append(f"ADD-ONLY：规则文件只增不减（+{added}）；MR 中说明为什么没有可删除或合并的规则")
+
+    touched_checks = sorted(p for p in changed if p.startswith(CHECKS) or p == REG)
+    if touched_checks:
+        warn.append("CHECKS-CHANGED：检查本身被修改（" + "、".join(touched_checks)
+                    + "）；在 MR 中单独说明，不与放宽对应规则的改动混在一起，由 CODEOWNERS review")
+    old_b = {p: (l, b) for p, l, b in budgets(show(mb, LOG))}
+    for p, l, b in budgets(log_now):
+        if p in old_b and (l > old_b[p][0] or b > old_b[p][1]):
+            warn.append(f"BUDGET-RAISED：{p} 预算从 {old_b[p][0]} 行/{old_b[p][1]} 字节提高到 {l}/{b}；需单独说明")
+
+    print("\n## 需要运行的回归场景（按触及文件匹配，见 " + REG + "）")
+    scenarios = []
+    reg = open(REG, encoding="utf-8").read() if os.path.exists(REG) else ""
+    for cells in table(reg, "场景"):
+        if not cells or not cells[0].startswith("RG-"):
+            continue
+        globs = [g.strip(" `") for g in re.split(r"[、,，]", cells[-1]) if g.strip(" `")]
+        if any(fnmatch.fnmatch(p, g) or p.startswith(g.rstrip("*")) for p in list(rules) + touched_checks for g in globs):
+            scenarios.append(cells[0])
+    print(" ".join(scenarios) if scenarios else "无")
+
+    print("\n## 结论")
+    for w in warn:
+        print("WARN\t" + w)
+    for f in fail:
+        print("FAIL\t" + f)
+    print("FAIL" if fail else "PASS")
+    return 1 if fail else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

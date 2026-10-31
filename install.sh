@@ -192,10 +192,12 @@ main() {
     src_commit=$(git -C "$src" rev-parse HEAD)
   fi
   local T=$src/templates f
-  for f in AGENTS development team issue-tracker domain onboarding skills-README spec ticket adr journal; do
+  for f in AGENTS development team issue-tracker domain onboarding skills-README spec ticket adr journal rule-regression rule-log; do
     [ -f "$T/$f.template.md" ] || die "来源中缺少模板：templates/$f.template.md（来源：$src）"
   done
-  [ -f "$T/scripts/ticket-status" ] || die "来源中缺少 templates/scripts/ticket-status"
+  for f in scripts/ticket-status scripts/rule-check skills/team-retro/SKILL.md skills/team-retro/agents/openai.yaml skills/team-retro/LICENSE.mattpocock-skills; do
+    [ -f "$T/$f" ] || die "来源中缺少 templates/$f（来源：$src）"
+  done
   case "$top/" in "$src/"*) die "目标仓库就是 harness 仓库本身；请指定要部署到的项目仓库" ;; esac
 
   # ---------- 工作区检查 ----------
@@ -283,14 +285,16 @@ main() {
 
   # ---------- 渲染到临时目录 ----------
   local out=$tmp/out
-  mkdir -p "$out/docs/agents/templates" "$out/docs/agents/scripts" "$out/.agents/skills"
+  mkdir -p "$out/docs/agents/templates" "$out/docs/agents/scripts" "$out/.agents/skills/team-retro/agents"
   cp "$T/AGENTS.template.md" "$out/AGENTS.md"
   cp "$T/development.template.md" "$out/docs/development.md"
-  for f in team issue-tracker domain onboarding; do cp "$T/$f.template.md" "$out/docs/agents/$f.md"; done
+  for f in team issue-tracker domain onboarding rule-regression rule-log; do cp "$T/$f.template.md" "$out/docs/agents/$f.md"; done
   for f in spec ticket adr journal; do cp "$T/$f.template.md" "$out/docs/agents/templates/$f.template.md"; done
-  cp "$T/scripts/ticket-status" "$out/docs/agents/scripts/ticket-status"
-  chmod 755 "$out/docs/agents/scripts/ticket-status"
+  for f in ticket-status rule-check; do cp "$T/scripts/$f" "$out/docs/agents/scripts/$f"; chmod 755 "$out/docs/agents/scripts/$f"; done
   cp "$T/skills-README.template.md" "$out/.agents/skills/README.md"
+  for f in SKILL.md agents/openai.yaml LICENSE.mattpocock-skills; do cp "$T/skills/team-retro/$f" "$out/.agents/skills/team-retro/$f"; done
+  # rule-log：基线记录的日期
+  fill "$out/docs/agents/rule-log.md" "| <部署 MR> | <YYYY-MM-DD> |" "| <部署 MR> | $(date +%F) |"
 
   # AGENTS.md
   fill "$out/AGENTS.md" $'# Project\n' "# $project_name"$'\n'
@@ -343,7 +347,9 @@ EOF
   local files=(AGENTS.md docs/development.md docs/agents/team.md docs/agents/issue-tracker.md docs/agents/domain.md
     docs/agents/onboarding.md docs/agents/templates/spec.template.md docs/agents/templates/ticket.template.md
     docs/agents/templates/adr.template.md docs/agents/templates/journal.template.md docs/agents/scripts/ticket-status
-    .agents/skills/README.md docs/agents/HARNESS-VERSION)
+    docs/agents/rule-regression.md docs/agents/rule-log.md docs/agents/scripts/rule-check
+    .agents/skills/README.md .agents/skills/team-retro/SKILL.md .agents/skills/team-retro/agents/openai.yaml
+    .agents/skills/team-retro/LICENSE.mattpocock-skills docs/agents/HARNESS-VERSION)
   local create=() same=() newf=() newsame=() ign=() a b
   for f in "${files[@]}"; do
     if [ -d "$top/$f" ]; then die "$f 是目录，无法部署"; fi
@@ -367,7 +373,7 @@ EOF
     fi
   done
   [ "${#ign[@]}" = 0 ] || warn "以下文件被 .gitignore 忽略，会写入但不提交：${ign[*]}"
-  command -v python3 >/dev/null 2>&1 || warn "未找到 python3；docs/agents/scripts/ticket-status 需要 python3 (>=3.9)"
+  command -v python3 >/dev/null 2>&1 || warn "未找到 python3；docs/agents/scripts/ticket-status 与 rule-check 需要 python3 (>=3.9)"
 
   info "目标仓库：$top"
   info "来源：$repo  ref=$src_ref  commit=$src_commit（$mode）"
@@ -415,17 +421,19 @@ EOF
       mkdir -p "$top/$(dirname "$f")"
       cp "$out/$f" "$top/$f"
     done
-    case " ${create[*]} " in
-      *" docs/agents/scripts/ticket-status "*) chmod 755 "$top/docs/agents/scripts/ticket-status" ;;
-    esac
+    for f in ticket-status rule-check; do
+      case " ${create[*]} " in *" docs/agents/scripts/$f "*) chmod 755 "$top/docs/agents/scripts/$f" ;; esac
+    done
     for f in ${newf[@]+"${newf[@]}"}; do
       cp "$out/${f%.harness-new}" "$top/$f"
     done
     if [ "$do_commit" = 1 ]; then
       git -C "$top" add -- "${commit_files[@]}"
-      git -C "$top" update-index --chmod=+x -- docs/agents/scripts/ticket-status 2>/dev/null || true
+      for f in ticket-status rule-check; do
+        git -C "$top" update-index --chmod=+x -- "docs/agents/scripts/$f" 2>/dev/null || true
+      done
       git -C "$top" commit -q -m "chore: 部署 team-agent-harness 规则与模板（${src_commit:0:12}）" \
-        -m "来源：$repo ref=$src_ref commit=$src_commit" -m "由 install.sh 生成；team-* skills 尚未包含。" \
+        -m "来源：$repo ref=$src_ref commit=$src_commit" -m "由 install.sh 生成；team-* skills 中只包含 team-retro。" \
         -- "${commit_files[@]}" || die "提交失败（文件已写入并暂存在分支 ${branch}）；处理后手工 git commit"
       info "已在分支 $branch 提交：$(git -C "$top" rev-parse --short HEAD)"
     fi
@@ -444,7 +452,7 @@ EOF
   [ "${#create[@]}" -gt 0 ] || [ "${#newf[@]}" -gt 0 ] || say "没有需要写入的文件（已是最新）。"
 
   local ph="" one
-  for f in AGENTS.md docs/development.md docs/agents/team.md docs/agents/issue-tracker.md docs/agents/domain.md docs/agents/onboarding.md .agents/skills/README.md; do
+  for f in AGENTS.md docs/development.md docs/agents/team.md docs/agents/issue-tracker.md docs/agents/domain.md docs/agents/onboarding.md docs/agents/rule-log.md .agents/skills/README.md; do
     case " ${newf[*]} ${newsame[*]} " in
       *" $f.harness-new "*) one=$(list_placeholders "$out/$f" "$f.harness-new") ;;
       *) one=$(list_placeholders "$out/$f" "$f") ;;
@@ -483,11 +491,12 @@ EOF
   say "  3. 建议配置 CODEOWNERS（如 .gitlab/CODEOWNERS）并对目标分支开启「需要 Code Owner 批准」："
   say "       /AGENTS.md       $owners"
   say "       /.agents/skills/ $owners"
-  say "       /docs/agents/    $owners"
+  say "       /docs/agents/    $owners   （含 rule-regression.md、rule-log.md 与 scripts/）"
   say "     并把 main 设为受保护分支（禁止直接推送与强推），在 MR 审批设置中开启「Reset approvals on push」。"
   say "  4. 每位成员按 docs/agents/onboarding.md 完成入组检查，并在 docs/agents/team.md 登记。"
   say "  5. 查看在途工作：git fetch --prune origin && docs/agents/scripts/ticket-status"
-  say "  注：team-* skills 尚未发布，本次只部署规则与模板；CONTEXT-MAP.md 与 CONTEXT.md 在首次需要领域术语时再建。"
+  say "  6. 按团队实际情况调整 docs/agents/rule-log.md 的预算并补上部署 MR 编号；之后改规则的 MR 附 docs/agents/scripts/rule-check 输出与回归结果。"
+  say "  注：team-* skills 中只部署了 team-retro（显式调用），其余尚未发布；CONTEXT-MAP.md 与 CONTEXT.md 在首次需要领域术语时再建。"
 }
 
 main "$@"

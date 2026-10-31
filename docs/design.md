@@ -48,7 +48,9 @@ repo-name/                              # 当前 checkout / worktree 根
 │   │   ├── domain.md                   # 领域文档/ADR 的发现与更新规则
 │   │   ├── onboarding.md               # 入组检查
 │   │   ├── templates/                  # spec/ticket/ADR/journal 格式的唯一定义
-│   │   └── scripts/ticket-status       # 跨分支 in-progress 票只读汇总
+│   │   ├── rule-regression.md          # 改规则 MR 需附结果的回归场景
+│   │   ├── rule-log.md                 # 规则文件预算与每次改动的来源
+│   │   └── scripts/                    # ticket-status（在途票汇总）、rule-check（规则改动检查）
 │   ├── adr/                            # 按需；重要架构取舍
 │   │   └── <YYYY-MM-DD>-<rand6>-<topic>.md
 │   └── journal/                        # 按需；每人每工作阶段一份记录
@@ -76,6 +78,7 @@ repo-name/                              # 当前 checkout / worktree 根
 | Agent 的读取触发与路径基准 | AGENTS.md | Harness 维护者，团队审查 |
 | 工程流程、设计原则、编码/测试/review 标准 | docs/development.md 或既有规范 | 项目维护者 |
 | 多人分工、成员名册、版本交接、共享规则迭代 | docs/agents/team.md | 团队共同维护 |
+| 规则回归场景、规则预算与来源 | docs/agents/rule-regression.md、docs/agents/rule-log.md | 团队共同维护，改动经 CODEOWNERS review |
 | 入组检查 | docs/agents/onboarding.md | Harness 维护者 |
 | Ticket 位置、标识、状态和元数据 | docs/agents/issue-tracker.md | Harness 维护者 |
 | Ticket 与 journal 的字段格式 | 对应模板（ticket、journal） | Harness 维护者 |
@@ -87,7 +90,7 @@ repo-name/                              # 当前 checkout / worktree 根
 | 阶段事实与下一步 | docs/journal/member/ | 工作成员，agent 代写 |
 | 正式 review、批准、合并结果 | GitLab MR | 团队现有审查流程 |
 
-team.md 不重复状态表、日志模板或编码规范。Journal 字段只在 [journal 模板](../templates/journal.template.md)定义（目标仓库中复制到 `docs/agents/templates/`），team-record-session 引用它而不另写一份；技能未安装时按该模板手写。规则/技能版本变化通过 MR 形成新基线；单次 agent 偏好不能直接成为全团队长期约束。
+team.md 不重复状态表、日志模板或编码规范。Journal 字段只在 [journal 模板](../templates/journal.template.md)定义（目标仓库中复制到 `docs/agents/templates/`），team-record-session 引用它而不另写一份；技能未安装时按该模板手写。规则/技能版本变化通过 MR 形成新基线；单次 agent 偏好不能直接成为全团队长期约束。规则演进的回路是 journal `Lessons` → 人调用 `team-retro` → 提案 MR（引用已核实事件、先删后加、登记来源）→ `rule-check` 与回归清单 → 人 review 合入；不自动改写规则文件。依据见 2026-10-31 的自我演进调研（[审查与取舍](review-summary.md#2026-10-31-规则自我演进回路)）。
 
 ## AGENTS.md 的建议入口
 

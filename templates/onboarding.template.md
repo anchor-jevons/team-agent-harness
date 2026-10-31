@@ -11,6 +11,8 @@
 
 - [ ] 检查 `~/.codex/AGENTS.md` 与 `~/.codex/AGENTS.override.md`（或 `CODEX_HOME` 下同名文件），确认没有与团队规则冲突的指令。
 - [ ] 本仓库内没有个人添加的 `AGENTS.override.md`。
+- [ ] 也使用其他 agent 工具时，检查其个人全局指令（如 `~/.claude/CLAUDE.md`、`~/.config/opencode/AGENTS.md`、`~/.zcode/AGENTS.md`），没有与团队规则冲突的内容。
+- [ ] 如开启了个人记忆（Claude Code auto memory、Codex memories、ZCode 项目记忆等），知道它只存在本机：与仓库规则冲突时以仓库规则为准并报告；团队需要的教训写进 journal 的 `Lessons`，经 `team-retro` 提案进入规则。
 - [ ] 个人全局技能中没有与团队技能同名的版本；安装了原版 Matt skills 时，确认阶段入口使用的是 `team-*` 版本。
 
 ## 权限与身份

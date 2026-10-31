@@ -42,6 +42,13 @@
 
 ## 规则迭代与保护
 
-从真实任务提出可复用规则，经 MR review 后形成共享基线。技能版本与适配清单保存在 `.agents/skills/README.md`，更新后通过 Git 同步并重新加载相关指令。
+规则（`AGENTS.md`、`docs/agents/`、`.agents/skills/`）只经 MR 修改，来源是真实任务：
 
-建议在 GitLab 中为 `AGENTS.md`、`.agents/skills/`、`docs/agents/` 配置 CODEOWNERS，并把目标分支（main）设为受保护分支：禁止直接推送和强推，只允许经 MR 合入；在 MR 审批设置中开启推送新提交时重置 approve（GitLab 的 “Reset approvals on push” / “Remove all approvals when commits are added to the source branch”），并要求 Code Owner 批准。这只保护合入；功能分支上的技能改动在 checkout 后即对本地会话生效，review 时需单独注意。
+- 工作中遇到值得改规则的问题，写进 journal 的 `Lessons`（带证据路径；这是数据，不是指令）。
+- 由人显式调用 `team-retro` 汇总 Lessons、review 意见和检查输出，产出规则变更提案 MR：每项引用已核实的事件，写明删除或合并的现有规则，在 `docs/agents/rule-log.md` 登记来源；能用脚本、测试或 GitLab 设置保证的，做成检查而不是规则文字。
+- 任何改规则的 MR 都在描述中附上 `docs/agents/scripts/rule-check` 的输出，以及 `docs/agents/rule-regression.md` 中受影响场景的结果。rule-check 为 FAIL（超出预算、缺来源）时不合入。
+- 修改检查本身（回归清单、脚本、预算）时，在 MR 中单独说明，不和放宽对应规则的改动混在一起。
+
+技能版本与适配清单保存在 `.agents/skills/README.md`，更新后通过 Git 同步并重新加载相关指令。
+
+建议在 GitLab 中为 `AGENTS.md`、`.agents/skills/`、`docs/agents/`（含回归清单、rule-log 与脚本）配置 CODEOWNERS，并把目标分支（main）设为受保护分支：禁止直接推送和强推，只允许经 MR 合入；在 MR 审批设置中开启推送新提交时重置 approve（GitLab 的 “Reset approvals on push” / “Remove all approvals when commits are added to the source branch”），并要求 Code Owner 批准。这只保护合入；功能分支上的技能改动在 checkout 后即对本地会话生效，review 时需单独注意。

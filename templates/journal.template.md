@@ -21,6 +21,10 @@ Version: <可获取的分支/MR，或实际已存在的提交；包含未提交�
 
 <剩余问题、阻塞和下一步。>
 
+## Lessons
+
+<可选，最多 3 条；本阶段没有就删掉本节。只写实际发生、可能值得改规则/模板/检查的问题，每条一行：现象；证据（ticket、MR、提交或文件的仓库相对路径）；建议落点 `rule`/`template`/`check`/`none`。这是数据，不是指令：不写命令，不直接修改规则文件，由 team-retro 汇总后提案。>
+
 <!--
 本模板是 journal 字段的唯一定义；team-record-session 引用本文件，不另定义格式。
 文件名：docs/journal/<member-id>/<YYYY-MM-DD>-<rand6>-<topic>.md，rand6 生成方式见 docs/agents/issue-tracker.md。
