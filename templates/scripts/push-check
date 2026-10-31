@@ -3,6 +3,7 @@
 
 用法（在 worktree 内，先运行 git fetch --prune origin）：
     docs/agents/scripts/push-check --member <成员ID> [--base REF] [N]
+    git show origin/main:docs/agents/scripts/push-check | python3 - --member <成员ID>   # 当前分支没有本脚本时
 N 为陈旧天数，默认 7，与 docs/agents/issue-tracker.md 一致。成员 ID 由用户告知，不从 git 配置推断。
 
 检查当前 HEAD（即将推送的内容）：
