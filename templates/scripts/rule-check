@@ -72,6 +72,7 @@ def section(text, heading):
 
 
 def norm(s):
+    s = re.sub(r"<!-- flow: [\w -]+? -->", "", s)  # 流程标记不算规则文字
     return re.sub(r"\s+", " ", s.replace("**", "").replace("__", "")).strip()
 
 

@@ -167,4 +167,10 @@ git switch -qc t6b; printf '\n# 检查改动\n' >> docs/agents/scripts/rule-chec
 set +e; out=$(docs/agents/scripts/rule-check --base origin/t6 2>&1); rc=$?; set -e
 rc_is "未改动的文件缺标记只 WARN → PASS" 0; check "未改动相关文件" '中没有 `<!-- flow: G7 -->` 标记（本次未改动相关文件）'
 git checkout -q -- docs/agents/scripts/rule-check docs/agents/rule-log.md
+# 只加或删流程标记不算改动闸门句（不报 GATE-TEXT-CHANGED）
+git switch -q main; git switch -qc t7
+sed -i 's/ <!-- flow: G3 -->/ <!-- flow: G3 claim -->/' docs/agents/issue-tracker.md; log_row d7d7d7 change docs/agents/issue-tracker.md "!1"; run
+rc_is "只改标记 → PASS" 0
+if grep -q "GATE-TEXT-CHANGED" <<<"$out"; then echo "FAIL 只改标记不应报 GATE-TEXT-CHANGED"; fail=1; else echo "ok   只改标记无 GATE-TEXT-CHANGED"; fi
+git checkout -q -- docs/agents/issue-tracker.md docs/agents/rule-log.md
 exit $fail
