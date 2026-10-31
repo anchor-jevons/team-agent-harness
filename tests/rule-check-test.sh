@@ -105,4 +105,13 @@ echo '| RG-99 | 测试 | 示例 | 示例 | 模型 | `AGENTS.md` |' >> docs/agent
 log_row b8b8b8 add AGENTS.md "!1"; run
 rc_is "新规则+新增场景 → PASS" 0
 git checkout -q -- AGENTS.md docs/agents/rule-log.md docs/agents/rule-regression.md
+# 协同删除闸门：一致但要 WARN；加限定词弱化闸门句：WARN
+git switch -q main; git switch -qc t4
+sed -i 's/Approve 之后再有任何新提交（包括票头、确认记录等文档改动），都要重新 approve 后才能合并。//' docs/agents/team.md
+sed -i '/approved -->|"G6/d; /^| G6 |/d' docs/agents/workflow.md; log_row c4c4c4 delete docs/agents/team.md "!1"; run
+rc_is "协同删除闸门 → PASS" 0; check "GATE-REMOVED" 'GATE-REMOVED：删除了闸门 G6'
+git checkout -q -- docs/agents/team.md docs/agents/workflow.md docs/agents/rule-log.md
+sed -i 's/都要重新 approve 后才能合并/除文档改动外，都要重新 approve 后才能合并/' docs/agents/team.md; log_row d5d5d5 change docs/agents/team.md "!1"; run
+check "GATE-TEXT-CHANGED" 'GATE-TEXT-CHANGED：G6'
+git checkout -q -- docs/agents/team.md docs/agents/rule-log.md
 exit $fail

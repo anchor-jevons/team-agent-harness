@@ -495,7 +495,8 @@ EOF
   say "     并把 main 设为受保护分支（禁止直接推送与强推），在 MR 审批设置中开启「Reset approvals on push」。"
   say "  4. 每位成员按 docs/agents/onboarding.md 完成入组检查，并在 docs/agents/team.md 登记。"
   say "  5. 查看在途工作：git fetch --prune origin && docs/agents/scripts/ticket-status"
-  say "  6. 按团队实际情况调整 docs/agents/rule-log.md 的预算并补上部署 MR 编号；之后改规则的 MR 附 docs/agents/scripts/rule-check 输出与回归结果。"
+  say "  6. 按团队实际情况调整 docs/agents/rule-log.md 的预算并补上部署 MR 编号；之后改规则的 MR 附 docs/agents/scripts/rule-check 输出与回归结果。
+     升级已部署的仓库时，若既改了检查（docs/agents/scripts/、rule-regression.md）又改了规则文件，拆成两个 MR：先合入只含检查的 MR，再合入规则部分。"
   say "  注：team-* skills 中只部署了 team-retro（显式调用），其余尚未发布；CONTEXT-MAP.md 与 CONTEXT.md 在首次需要领域术语时再建。"
 }
 

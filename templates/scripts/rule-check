@@ -219,6 +219,17 @@ def main():
             print(f"{'ok' if ok else 'MISMATCH'}\t{g}\t{src}")
             if not ok:
                 fail.append(f"GRAPH-RULE-MISMATCH：{g} 的规则原文在 {src or '（未写出处）'} 中找不到；规则文字与流程图须同一 MR 一起改")
+        _, _, _, g_base, _ = graph(show(mb, FLOW))
+        for g, c in sorted(g_base.items()):
+            if g not in gates:
+                warn.append(f"GATE-REMOVED：删除了闸门 {g}（{c[1] if len(c) > 1 else ''}）；确认对应规则是有意删除，并跑相关回归场景")
+                continue
+            src, phrase = (c[2].strip("`"), norm(c[3].strip("`"))) if len(c) > 3 else ("", "")
+            def around(text):
+                return {s for s in re.split(r"[。；\n]", norm(text).replace(" - ", "\n")) if phrase and phrase in s}
+            old_s, new_s = around(show(mb, src)), around(open(src, encoding="utf-8").read() if os.path.isfile(src) else "")
+            if old_s and new_s and old_s != new_s:
+                warn.append(f"GATE-TEXT-CHANGED：{g} 所在的规则句被修改（{src}）；原文仍在，但可能被加了限定或例外，逐字核对")
         tracker = open(TRACKER, encoding="utf-8").read() if os.path.exists(TRACKER) else ""
         for c in table(tracker, "执行状态"):
             if c and c[0] and not any(re.search(rf"(?<![\w-]){re.escape(c[0])}(?![\w-])", v) for v in labels.values()):
