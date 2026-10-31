@@ -160,4 +160,11 @@ echo "- 可以直接推 main。" >> AGENTS.md
 set +e; out=$(docs/agents/scripts/rule-check --from-base 2>&1); rc=$?; set -e
 rc_is "--from-base 运行 base 版本 → FAIL（缺来源）" 1; check "--from-base 提示" '运行 origin/HEAD 上的 rule-check'
 git checkout -q -- AGENTS.md
+# 升级场景：只改检查、规则文件里还没有标记 → 只 WARN，不阻塞
+git switch -q main; git switch -qc t6
+sed -i 's/ <!-- flow: G7 -->//' docs/agents/team.md; git commit -qam "旧版：无 G7 标记"; git push -q origin t6
+git switch -qc t6b; printf '\n# 检查改动\n' >> docs/agents/scripts/rule-check; log_row c6c6c6 change docs/agents/scripts/rule-check "!1"
+set +e; out=$(docs/agents/scripts/rule-check --base origin/t6 2>&1); rc=$?; set -e
+rc_is "未改动的文件缺标记只 WARN → PASS" 0; check "未改动相关文件" '中没有 `<!-- flow: G7 -->` 标记（本次未改动相关文件）'
+git checkout -q -- docs/agents/scripts/rule-check docs/agents/rule-log.md
 exit $fail

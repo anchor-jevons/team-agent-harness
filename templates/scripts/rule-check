@@ -264,11 +264,15 @@ def main():
             ok = i in nodes or i in gates
             print(f"{'ok' if ok else 'MISSING'}\t{i}\t{'、'.join(sorted(fs))}")
             if not ok:
-                fail.append(f"FLOW-MARK-MISSING：{'、'.join(sorted(fs))} 中标记的流程 {i} 在流程图中没有对应的节点或闸门；先改图，或删去标记与规则")
+                msg = f"FLOW-MARK-MISSING：{'、'.join(sorted(fs))} 中标记的流程 {i} 在流程图中没有对应的节点或闸门；先改图，或删去标记与规则"
+                touched = FLOW in changed or any(f in changed for f in fs)
+                (fail if touched else warn).append(msg if touched else msg + "（本次未改动相关文件）")
         for g, c in sorted(gates.items()):
             src = c[2].strip("`") if len(c) > 2 else ""
             if src not in marks.get(g, set()):
-                fail.append(f"FLOW-MARK-MISSING：闸门 {g} 在规则出处 {src or '（未写）'} 中没有 `<!-- flow: {g} -->` 标记")
+                msg = f"FLOW-MARK-MISSING：闸门 {g} 在规则出处 {src or '（未写）'} 中没有 `<!-- flow: {g} -->` 标记"
+                touched = FLOW in changed or src in changed
+                (fail if touched else warn).append(msg if touched else msg + "（本次未改动相关文件）")
         flow_old = show(mb, FLOW)
         if flow_old and flow_old != flow_now:
             n0, e0, _, g0, l0 = graph(flow_old)
