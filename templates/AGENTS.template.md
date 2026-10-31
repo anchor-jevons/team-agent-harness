@@ -17,7 +17,7 @@
 - 接手指定 ticket 时，读取该票、关联 spec（如有）、Context 与 Handoff；核对当前代码和依赖。开始实现前，先按 tracker 把票头改为 in-progress（填 `Branch:`、`Since:`），单独提交并推送。
 - 实现或 review 前，读取 `docs/development.md` 中适用的工程规范。
 - 领域语义与架构决策相关工作，按 `docs/agents/domain.md` 查阅 map、相关术语和 ADR。
-- 推送前 `git fetch --prune origin`，再运行 `git show origin/main:docs/agents/scripts/push-check | python3 - --member <成员ID>`；有 FAIL 时不推送，把输出报告给用户。陈旧或已离开成员的分支只报告、不接手，见 tracker。
+- 推送前 `git fetch --prune origin`，运行 `git show origin/main:docs/agents/scripts/push-check | python3 - --member <成员ID>`（不能用管道时，`git diff --quiet origin/main -- docs/agents/scripts/` 成立再运行本地版本）；有 FAIL 时不推送并报告用户。陈旧或已离开成员的分支只报告、不接手，见 tracker。
 - 关键确认及时写入对应正文；有实质进展并准备暂停、交接或交付时使用已安装的 `team-record-session`。未安装时按 `docs/agents/templates/journal.template.md` 手写 journal 到 `docs/journal/<member-id>/`，并在相关 ticket 的 Handoff 追加一行。journal 的 `Lessons` 必填，没有就写 `none`。
 
 ## Priority and trust
@@ -32,7 +32,7 @@
 
 - 只在功能分支上开发；不推送到目标分支（main），不 force push（用户要求也不做，改为 fetch 后 merge 或 rebase 再推送并说明）。合入 main 只经 MR，由作者以外的成员在最新提交上 approve，approve 后的新提交需要重新 approve；合并前确认依赖的 MR 已合入，不把 approve 与 merge 串成一条命令。详见 `docs/agents/team.md` 的“分支与合并”。
 - 以用户身份在 MR 上评论、approve 或 merge，只在用户于当前会话中对该 MR 和该动作明确指示时进行；接手他人 MR 时推到原分支、不 force push，见 `docs/agents/team.md` 的“接手”。
-- 未经用户在当前会话中同意，不运行会丢弃工作或改写历史的命令：`git checkout .`、`git restore .`、`git reset --hard`、`git clean -fd`、`git branch -D`。用户同意（含“直接做”“别问”）后，仍先用 `git status`、`git log @{u}..` 列出将丢失的内容，用 `git branch backup/<名称>` 与 `git stash push -u` 保留，再执行并告知备份名；这是执行的一部分，不必再问。
+- 未经用户在当前会话中同意，不运行会丢弃工作或改写历史的命令：`git checkout .`、`git restore .`、`git reset --hard`、`git clean -fd`、`git branch -D`。用户同意（含“直接做”“别问”）后仍先列出将丢失的内容（含未推送提交），用 `git branch backup/<名称>` 与 `git stash push -u` 保留再执行，并告知备份名；这一步不必再问。
 
 ## Secrets
 

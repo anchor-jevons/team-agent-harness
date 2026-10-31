@@ -141,5 +141,11 @@ Agent 能力 reviewer 对综合设计再次复核，确认关键问题已在设�
 - AGENTS 的破坏性 git：用户同意后也先列出将丢失的内容，用备份分支或 `git stash -u` 保留再执行。试点中 4/4 次一同意就执行 `checkout .` 或 `reset --hard` 加 `clean -fd`，没有备份；强推 0 次。
 - onboarding：Codex 的 workspace-write 沙箱默认把 `.git`、`.agents/` 设为只读；个人技能与仓库流程冲突时以仓库为准。
 - install.sh 列占位符时忽略 HTML 注释（流程标记）；rule-check 找不到目标分支时给出明确错误。
-- 仍未解决：agent 几乎不写 Lessons（12 份 journal 中 1 份）；陈旧分支只报告不接手的规则，8 次中 2 次失败。上面两条规则文字修改尚未用真实 Codex 复测。
+- 当时未解决：agent 几乎不写 Lessons（12 份 journal 中 1 份）；陈旧分支只报告不接手的规则，8 次中 2 次失败。
+
+2026-10-31 随后用 Grok Build CLI 1.0.46（grok-4.7-build，无头，`--permission-mode auto` 加 allow/deny 规则与项目沙箱，未用 `--always-approve`）补跑 30 次。模型不同，结果不能与 Codex 直接比较。修正：
+
+- 新增 `push-check`（从 main 的版本运行）：当前分支或其上游是陈旧或已离开成员的 in-progress 分支、或含其未合入提交时 FAIL；本次将推送的 journal 缺非空 `## Lessons` 时 FAIL。journal 模板改为 Lessons 必填（无则写 none），tracker 与 team.md 写明陈旧分支只报告、新负责人从目标分支开新分支。复测：Grok 写的 8 份 journal 都有非空 Lessons；陈旧分支场景 3/3 从 main 开新分支、未动原分支。
+- AGENTS：强推即使用户要求也不做；同意后先建备份分支并 `git stash push -u` 再执行，这一步不必再问；不能用管道运行 main 版本时，先确认本地脚本与 main 一致。
+- onboarding：Grok 只在项目被信任后加载 `AGENTS.md`，无头或未信任时 `grok inspect` 显示 Project Instructions (0)。未加载时 S10 的 8 次中强推尝试 4/4（被 hook 或 Grok 自身审查拦下）、无备份清理 8/8；用 `--rules` 传入后 6 次全部不强推、清理前都先备份。
 

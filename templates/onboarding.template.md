@@ -18,6 +18,7 @@
 ## 权限与身份
 
 - [ ] 从仓库根和 `project-name/` 两种目录启动时，agent 都能写入根目录下的 `.scratch/` 与 `docs/journal/`（试写后用 `git status` 确认并删除试写文件），并能 `git commit`：Codex 的 workspace-write 沙箱默认把 `.git`、`.agents/` 设为只读，`.git` 按团队试点结论放开。
+- [ ] 确认 agent 加载了仓库 `AGENTS.md`：Grok 只在项目被信任（`grok --trust`）后加载，`grok inspect` 显示 Project Instructions (0) 即未加载。
 - [ ] 在 `docs/agents/team.md` 名册中登记成员 ID 与 GitLab 用户名。
 - [ ] 拥有 GitLab 仓库推送与创建 MR 的权限。
 
