@@ -93,10 +93,10 @@ ask() {
 }
 
 list_placeholders() {
-  # 列出正文中尚未填写的 <...> 占位符；忽略行内代码与代码块中的写法示例（如 `<rand6>`）。
+  # 列出正文中尚未填写的 <...> 占位符；忽略行内代码与代码块中的写法示例（如 `<rand6>`）以及 HTML 注释（如流程标记）。
   local f=$1 label=$2 hits
   # shellcheck disable=SC2016  # 反引号是 sed 正则中的字面量
-  hits=$(sed -e '/^```/,/^```/s/.*//' -e 's/`[^`]*`//g' "$f" | grep -n -o '<[^<>]*>' || true)
+  hits=$(sed -e '/^```/,/^```/s/.*//' -e 's/`[^`]*`//g' -e 's/<!--[^>]*-->//g' "$f" | grep -n -o '<[^<>]*>' || true)
   [ -n "$hits" ] || return 0
   printf '%s\n' "$hits" | while IFS= read -r h; do
     printf '  %s:%s\n' "$label" "$h"

@@ -116,6 +116,8 @@ def main():
             if subprocess.run(["git", "rev-parse", "-q", "--verify", cand], capture_output=True).returncode == 0:
                 base = cand
                 break
+    if not base:
+        sys.exit("rule-check：找不到目标分支（origin/HEAD、origin/main 或 main），用 --base <分支> 指定")
     os.chdir(git("rev-parse", "--show-toplevel").strip())
     mb = git("merge-base", base, "HEAD").strip()
     fail, warn = [], []
@@ -188,9 +190,13 @@ def main():
         evidence = c[4] if len(c) > 4 else ""
         refs = re.findall(r"!\d+", evidence)
         paths = [t for t in re.findall(r"[\w.\-]+(?:/[\w.\-]+)+", evidence) if os.path.exists(t) or show("HEAD", t)]
-        ok = bool(refs or paths) or op == "baseline"
-        print(f"{'ok' if ok else 'NO-EVIDENCE'}\t{rid}\t{op}\t{evidence}")
-        if not ok:
+        at_base = [t for t in paths if subprocess.run(["git", "cat-file", "-e", f"{mb}:{t}"], capture_output=True).returncode == 0]
+        ok = bool(refs or at_base) or op == "baseline"
+        state = "ok" if ok else ("EVIDENCE-NEW" if paths else "NO-EVIDENCE")
+        print(f"{state}\t{rid}\t{op}\t{evidence}")
+        if state == "EVIDENCE-NEW":
+            fail.append(f"{rid} 的来源证据只在本 MR 中新增（{', '.join(paths)}）：引用目标分支上已有的 journal、ticket 或 MR 编号（!N）")
+        elif not ok:
             fail.append(f"{rid} 的来源证据无法核对：写当前仓库中存在的文件路径或 MR 编号（!N）")
     if rules and not new_rows:
         fail.append(f"规则文件有改动，但 {LOG} 没有新增记录（每项改动登记 ID、操作、位置、来源与回归结果）")

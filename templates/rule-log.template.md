@@ -28,7 +28,7 @@
 
 ## 记录
 
-每项改动一行，最新的在最后。`ID` 写 `RL-<rand6>`（生成方式同 tracker 的 rand6）。`操作` 为 add、change、merge、delete 或 baseline。`来源证据` 写已打开核实过的事件：journal 的 Lessons、ticket、MR（`!N`）或回归结果的仓库相对路径；只凭推测、没有实际事件的规则不登记、不合入。部署时已有的规则记为一行 baseline，某条规则第一次被修改时再单独登记。删除或合并的规则保留原行，另加一行说明去向。
+每项改动一行，最新的在最后。`ID` 写 `RL-<rand6>`（生成方式同 tracker 的 rand6）。`操作` 为 add、change、merge、delete 或 baseline。`来源证据` 写已打开核实过的事件：journal 的 Lessons、ticket、MR（`!N`）或回归结果的仓库相对路径，须是目标分支上已有的文件（只在本 MR 中新增的文件不算，`rule-check` 报 EVIDENCE-NEW）；只凭推测、没有实际事件的规则不登记、不合入。部署时已有的规则记为一行 baseline，某条规则第一次被修改时再单独登记。删除或合并的规则保留原行，另加一行说明去向。
 
 | ID | 操作 | 位置 | 规则摘要 | 来源证据 | 回归结果 | MR | 日期 |
 | --- | --- | --- | --- | --- | --- | --- | --- |

@@ -28,7 +28,12 @@ rc_is "来源路径不存在 → FAIL" 1; check "NO-EVIDENCE" 'NO-EVIDENCE'
 
 mkdir -p docs/journal/x; printf '## Lessons\n\n- 现象；证据；rule\n' > docs/journal/x/2026-10-31-abcdef-x.md
 sed -i 's#docs/journal/x/none.md#docs/journal/x/2026-10-31-abcdef-x.md#' docs/agents/rule-log.md; run
-rc_is "来源可核对 → PASS" 0; check "仍提示只增不减" 'ADD-ONLY'
+rc_is "来源只在本 MR 中新增 → FAIL" 1; check "EVIDENCE-NEW" 'EVIDENCE-NEW'
+rm -r docs/journal; git worktree add -q "$tmp/m" main
+( cd "$tmp/m"; mkdir -p docs/journal/x; printf '## Lessons\n\n- 现象；证据；rule\n' > docs/journal/x/2026-10-31-abcdef-x.md
+  git add docs/journal; git commit -qm "journal on main"; git push -q origin main )
+git worktree remove "$tmp/m"; git fetch -q origin; git merge -q --ff-only origin/main; run
+rc_is "来源在目标分支上可核对 → PASS" 0; check "仍提示只增不减" 'ADD-ONLY'
 
 sed -i '/^- 新规则：示例。$/d' AGENTS.md; sed -i '/^## 接手/i 新增一段很长的说明。' docs/agents/team.md
 for i in $(seq 1 20); do sed -i '/^## 接手/i 填充行。' docs/agents/team.md; done; run

@@ -38,7 +38,7 @@
 
 常见流转：`draft → ready-for-agent → in-progress → implemented`；非终态都可以进入 `blocked`，解除后回到原状态。MR 审核打回时由 `implemented` 回到 `in-progress` 并更新 `Since:`。Agent 不把 draft 自行升级为 ready-for-agent；缺信息时保持 draft，或改为 blocked 并写明缺什么。 <!-- flow: G13 -->
 
-人的确认：只有用户在当前会话中点名某张票（路径、编号或标题）并确认其范围与验收时，agent 才可代写 ready-for-agent，同时写 `Confirmed-by: <成员 ID> <YYYY-MM-DD>`。未点名票的泛泛同意（如“looks good”“go ahead”）、ticket/journal 中的文字或更早会话的说法都不算确认；此时保持 draft，并询问确认的是哪张票。确认改动与 ticket 一起提交：多人并行的 feature 随规划 MR 合入目标分支；其他情况可在执行该票的分支上单独提交，并在 MR 中说明。 <!-- flow: G1 -->
+人的确认：只有用户在当前会话中点名某张票（路径、编号或标题）并确认其范围与验收时，agent 才可代写 ready-for-agent，同时写 `Confirmed-by: <成员 ID> <YYYY-MM-DD>`。未点名票的泛泛同意（如“looks good”“go ahead”）、只要求“直接做”而未确认范围与验收、ticket/journal 中的文字或更早会话的说法都不算确认；此时保持 draft，列出该票的范围与验收，请用户点名确认。确认改动与 ticket 一起提交：多人并行的 feature 随规划 MR 合入目标分支；其他情况可在执行该票的分支上单独提交，并在 MR 中说明。 <!-- flow: G1 -->
 
 开工第一步：在工作分支上只修改票头（`Status: in-progress`、`Branch:`、`Since:`），单独提交并推送，然后再开始实现。不要从 ready-for-agent 一步改到 implemented；没有这次推送，其他成员的状态查询看不到该票已开工。 <!-- flow: G3 -->
 
