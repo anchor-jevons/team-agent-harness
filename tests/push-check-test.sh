@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 手工检查 templates/scripts/push-check（不接入 CI）：bash tests/push-check-test.sh
-# 在临时目录建 bare 远端：名册 mei/raj；离开成员 ken 的陈旧分支；断言 STALE-BRANCH / FROM-STALE / OTHER-OWNER / JOURNAL-LESSONS。
+# 在临时目录建 bare 远端：名册 mei/raj；离开成员 ken 的陈旧分支；断言 STALE-BRANCH / FROM-STALE / OTHER-OWNER / JOURNAL-LESSONS / TAKEOVER。
 set -euo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
 script=$here/templates/scripts/push-check
@@ -51,4 +51,8 @@ printf '# k\n\n## Next\n\nz\n' > docs/journal/raj/2026-10-31-bbbbbb-k.md; git ad
 run --member raj; check "新 journal 缺 Lessons → FAIL" 'bbbbbb-k.md'; checkno "已推送的 journal 不报" 'abcdef-j.md'
 # 名册里的 mei 本人在自己的分支上 → 不报
 git switch -q feature/b; run --member mei; checkno "Owner 本人不报" 'OTHER-OWNER'
+# 分支上有其他成员的 journal（接手）→ WARN TAKEOVER；本人不报
+mkdir -p docs/journal/mei; printf '# m\n\n## Lessons\n\nnone\n' > docs/journal/mei/2026-10-30-cccccc-m.md; git add -A; git commit -qm "mei journal"
+run --member raj; check "接手他人 MR → TAKEOVER WARN" $'WARN\tTAKEOVER\tfeature/b'; check "TAKEOVER 仍 PASS" $'RESULT\tPASS'
+run --member mei; checkno "本人分支不报 TAKEOVER" 'TAKEOVER'
 exit $fail

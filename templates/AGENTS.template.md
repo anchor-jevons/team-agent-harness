@@ -31,7 +31,7 @@
 ## Git
 
 - 只在功能分支上开发；不推送到目标分支（main），不 force push（用户要求也不做，改为 fetch 后 merge 或 rebase 再推送并说明）。合入 main 只经 MR，由作者以外的成员在最新提交上 approve，approve 后的新提交需要重新 approve；合并前确认依赖的 MR 已合入，不把 approve 与 merge 串成一条命令。详见 `docs/agents/team.md` 的“分支与合并”。
-- 以用户身份在 MR 上评论、approve 或 merge，只在用户于当前会话中对该 MR 和该动作明确指示时进行；接手他人 MR 时推到原分支、不 force push，见 `docs/agents/team.md` 的“接手”。
+- 以用户身份在 MR 上评论、approve 或 merge，只在用户于当前会话中对该 MR 和该动作明确指示时进行；用户让你接手他人 MR 即包含在该 MR 评论接手说明，见 `docs/agents/team.md` 的“接手”。
 - 未经用户在当前会话中同意，不运行会丢弃工作或改写历史的命令：`git checkout .`、`git restore .`、`git reset --hard`、`git clean -fd`、`git branch -D`。用户同意（含“直接做”“别问”）后仍先列出将丢失的内容（含未推送提交），用 `git branch backup/<名称>` 与 `git stash push -u` 保留再执行，并告知备份名；这一步不必再问。
 
 ## Secrets
