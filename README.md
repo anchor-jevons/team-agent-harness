@@ -36,6 +36,7 @@ repo-name/
 │   └── _done/                       # 已完成 feature 归档
 ├── docs/
 │   ├── development.md
+│   ├── feature-map.md               # 面向用户的功能、入口与验证步骤
 │   ├── agents/
 │   │   ├── team.md
 │   │   ├── issue-tracker.md
@@ -76,6 +77,7 @@ curl -fsSL https://raw.githubusercontent.com/anchor-jevons/team-agent-harness/ma
 - `implemented` 表示分支实现与约定验证完成；正式审核和合并以 MR 为准。
 - Spec 保存需求与关键问答，CONTEXT 保存现行术语，ADR 保存重要取舍，journal 保存阶段事实与下一步。
 - 代码和相关文档在同一个 MR 中 review；无文本冲突不代表决策一致。
+- `docs/feature-map.md` 列出面向用户的功能、入口和验证步骤：含糊的请求先对照它，对不上就问人；改用户可见行为的 MR 同时更新对应条目，ticket 用 `涉及功能:` 引用条目 ID。
 - 只在功能分支开发；合入 main 只经 MR，需作者以外的成员在最新提交上 approve，approve 后有新提交须重新 approve；agent 不推送 main、不 force push。部署时建议在 GitLab 把 main 设为受保护分支（禁止直接推送与强推），并开启 “Reset approvals on push”。
 - Journal 是阶段性开发摘要，不承诺完整聊天审计或崩溃自动留痕。
 

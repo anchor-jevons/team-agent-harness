@@ -10,6 +10,7 @@
 | [Context map](CONTEXT-MAP.template.md) | `CONTEXT-MAP.md` |
 | [领域词汇](CONTEXT.template.md) | `project-name/CONTEXT.md` |
 | [工程规范](development.template.md) | `docs/development.md`，或合入既有规范 |
+| [功能地图](feature-map.template.md) | `docs/feature-map.md` |
 | [协作约定](team.template.md) | `docs/agents/team.md` |
 | [本地 tracker](issue-tracker.template.md) | `docs/agents/issue-tracker.md` |
 | [领域文档规则](domain.template.md) | `docs/agents/domain.md` |
@@ -30,6 +31,8 @@
 Spec、Ticket、ADR、Journal 四个模板另外原样复制到目标仓库的 `docs/agents/templates/`（保留文件名与字段，只按项目调整占位说明），作为目标仓库中这些文件格式的唯一定义；其他规则提到的“ticket 模板”“journal 模板”“ADR 模板”都指那里的文件。上表右列是按模板新建的文件所在位置。
 
 `<rand6>` 是 6 位小写十六进制随机串，生成与引用规则只在[本地 tracker](issue-tracker.template.md#标识) 中定义。Journal 字段只在 journal 模板中定义。
+
+功能地图（`docs/feature-map.md`）像 sitemap 一样列出面向用户的功能：ID、作用、入口（CLI 命令、页面与 DOM 元素、快捷键、API）、可运行的验证步骤、Owner 与最近验证。Agent 先用它把含糊的请求对到具体功能，对不上就问人；改用户可见行为的 MR 同时更新条目，ticket 用 `涉及功能:` 引用条目 ID，`push-check` 对漏更新给出 WARN FEATURE-MAP。思路来自 poteto 关于 agent 自我验证的演讲（“A feature map gives context. A CLI gives control.”）；本仓库不提供验证 CLI，条目的“验证”写项目已有的命令。
 
 没有领域术语时，无需创建 map/CONTEXT 空壳；首次产生定义时两者同时落地。小任务可以只有 ticket。ADR 与 journal 按实际工作产生。新建 ticket 默认 `Status: draft`、`Owner: None`，由人确认后改为 ready-for-agent 并记录 `Confirmed-by:`。
 

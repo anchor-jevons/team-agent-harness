@@ -43,7 +43,7 @@ flowchart TD
 | G2 | 多人并行先合入规划 MR | docs/agents/team.md | 先由 feature 负责人提交一个只含 spec 与拆票的规划 MR |
 | G3 | 开工第一步单独提交并推送 in-progress | docs/agents/issue-tracker.md | 单独提交并推送，然后再开始实现 |
 | G4 | 依赖未合入时基于依赖分支开工或标 blocked | docs/agents/issue-tracker.md | 从依赖票的 `Branch:` 分支开出本票分支 |
-| G5 | 作者以外的成员在最新提交上 approve | docs/agents/team.md | 需要作者以外的成员在 MR 的最新提交上 approve |
+| G5 | 作者以外的成员在最新提交上 approve；先核对功能地图已随用户可见行为更新 | docs/agents/team.md | 需要作者以外的成员在 MR 的最新提交上 approve |
 | G6 | approve 后的新提交需要重新 approve | docs/agents/team.md | 都要重新 approve 后才能合并 |
 | G7 | 依赖 MR 先合；approve 与 merge 分步执行 | docs/agents/team.md | 不把 approve 与 merge 串成一条命令 |
 | G8 | dropped 只能由人设置 | docs/agents/issue-tracker.md | 不再执行；在正文写明原因与决定人 |

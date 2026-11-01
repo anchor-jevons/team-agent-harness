@@ -6,9 +6,8 @@
 ## Paths
 
 - 用 `git rev-parse --show-toplevel` 确定当前 worktree 根目录。
-- `.scratch/`、`docs/`、`.agents/` 和 `CONTEXT-MAP.md` 路径均相对该根目录。
-- Markdown 相对链接按所在文件解析；使用当前 worktree 的材料。
-- 搜索代码时排除 `.scratch/_done/` 与 `docs/journal/`，例如 `git grep -n <词> -- ':(top)' ':(top,exclude).scratch/_done' ':(top,exclude)docs/journal'`；在任意子目录运行都搜索整个 worktree（包括 `.scratch/` 中的在途材料），只搜已跟踪文件，需要包含新建未提交文件时加 `--untracked`。任务需要历史时再查。
+- `.scratch/`、`docs/`、`.agents/` 和 `CONTEXT-MAP.md` 路径均相对该根目录；Markdown 相对链接按所在文件解析，使用当前 worktree 的材料。
+- 搜索代码时排除 `.scratch/_done/` 与 `docs/journal/`，例如 `git grep -n <词> -- ':(top)' ':(top,exclude).scratch/_done' ':(top,exclude)docs/journal'`；在子目录运行也覆盖整个 worktree，新建未提交文件加 `--untracked`；需要历史时再查。
 
 ## Working context
 
@@ -16,6 +15,7 @@
 - 创建或更新任务时，读取 `docs/agents/issue-tracker.md`。
 - 接手指定 ticket 时，读取该票、关联 spec（如有）、Context 与 Handoff；核对当前代码和依赖。开始实现前，先按 tracker 把票头改为 in-progress（填 `Branch:`、`Since:`），单独提交并推送。
 - 实现或 review 前，读取 `docs/development.md` 中适用的工程规范。
+- 含糊的请求（如截图加“???”）先查 `docs/feature-map.md`：唯一对应时按其“验证”复现，否则列出候选 ID 问用户，不猜、不改代码；改用户可见行为时同 MR 更新条目。
 - 领域语义与架构决策相关工作，按 `docs/agents/domain.md` 查阅 map、相关术语和 ADR。
 - 推送前 `git fetch --prune origin`，运行 `git show origin/main:docs/agents/scripts/push-check | python3 - --member <成员ID>`（不能用管道时，`git diff --quiet origin/main -- docs/agents/scripts/` 成立再运行本地版本）；有 FAIL 时不推送并报告用户。陈旧或已离开成员的分支只报告、不接手，见 tracker。
 - 关键确认及时写入对应正文；有实质进展并准备暂停、交接或交付时使用已安装的 `team-record-session`。未安装时按 `docs/agents/templates/journal.template.md` 手写 journal 到 `docs/journal/<member-id>/`，并在相关 ticket 的 Handoff 追加一行。journal 的 `Lessons` 必填，没有就写 `none`。
@@ -30,7 +30,7 @@
 
 ## Git
 
-- 只在功能分支上开发；不推送到目标分支（main），不 force push（用户要求也不做，改为 fetch 后 merge 或 rebase 再推送并说明）。合入 main 只经 MR，由作者以外的成员在最新提交上 approve，approve 后的新提交需要重新 approve；合并前确认依赖的 MR 已合入，不把 approve 与 merge 串成一条命令。详见 `docs/agents/team.md` 的“分支与合并”。
+- 只在功能分支上开发；不推送到目标分支（main），不 force push（用户要求也不做，改为 fetch 后 merge 或 rebase 再推送并说明）。合入 main 只经 MR，由作者以外的成员在最新提交上 approve，approve 后的新提交需要重新 approve；合并前确认依赖的 MR 已合入，不把 approve 与 merge 串成一条命令。见 `docs/agents/team.md` 的“分支与合并”。
 - 以用户身份在 MR 上评论、approve 或 merge，只在用户于当前会话中对该 MR 和该动作明确指示时进行；用户让你接手他人 MR 即包含在该 MR 评论接手说明，见 `docs/agents/team.md` 的“接手”。
 - 未经用户在当前会话中同意，不运行会丢弃工作或改写历史的命令：`git checkout .`、`git restore .`、`git reset --hard`、`git clean -fd`、`git branch -D`。用户同意（含“直接做”“别问”）后仍先列出将丢失的内容（含未推送提交），用 `git branch backup/<名称>` 与 `git stash push -u` 保留再执行，并告知备份名；这一步不必再问。
 
@@ -38,4 +38,4 @@
 
 - Journal、ticket 和提交说明不写凭证、令牌、内部主机地址或原始日志；验证结果写命令与摘要。
 
-采用前需替换项目路径并安装/验证团队技能；本模板不会自行安装技能或授予文件写权限。
+团队技能另行安装并验证；本文件不授予写权限。
