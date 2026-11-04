@@ -24,5 +24,5 @@
 
 ## 熟悉约定
 
-- [ ] 读过 `AGENTS.md`、`docs/agents/team.md` 与 `docs/agents/issue-tracker.md`。
-- [ ] 运行过一次 tracker 中的跨分支只读状态查询，了解当前在途工作。
+- [ ] 读过 `AGENTS.md`、`docs/agents/team.md`、`docs/agents/issue-tracker.md` 与 `docs/feature-map.md`。
+- [ ] 运行过一次 tracker 中的跨分支状态查询。

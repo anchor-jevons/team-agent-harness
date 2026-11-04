@@ -192,7 +192,7 @@ main() {
     src_commit=$(git -C "$src" rev-parse HEAD)
   fi
   local T=$src/templates f
-  for f in AGENTS development team issue-tracker domain onboarding skills-README spec ticket adr journal rule-regression rule-log workflow; do
+  for f in AGENTS development team issue-tracker domain onboarding skills-README spec ticket adr journal rule-regression rule-log workflow feature-map; do
     [ -f "$T/$f.template.md" ] || die "来源中缺少模板：templates/$f.template.md（来源：$src）"
   done
   for f in scripts/ticket-status scripts/push-check scripts/rule-check skills/team-retro/SKILL.md skills/team-retro/agents/openai.yaml skills/team-retro/LICENSE.mattpocock-skills; do
@@ -288,6 +288,7 @@ main() {
   mkdir -p "$out/docs/agents/templates" "$out/docs/agents/scripts" "$out/.agents/skills/team-retro/agents"
   cp "$T/AGENTS.template.md" "$out/AGENTS.md"
   cp "$T/development.template.md" "$out/docs/development.md"
+  cp "$T/feature-map.template.md" "$out/docs/feature-map.md"
   for f in team issue-tracker domain onboarding rule-regression rule-log workflow; do cp "$T/$f.template.md" "$out/docs/agents/$f.md"; done
   for f in spec ticket adr journal; do cp "$T/$f.template.md" "$out/docs/agents/templates/$f.template.md"; done
   for f in ticket-status push-check rule-check; do cp "$T/scripts/$f" "$out/docs/agents/scripts/$f"; chmod 755 "$out/docs/agents/scripts/$f"; done
@@ -298,9 +299,8 @@ main() {
 
   # AGENTS.md
   fill "$out/AGENTS.md" $'# Project\n' "# $project_name"$'\n'
+  fill "$out/docs/feature-map.md" "<项目名>" "$project_name"
   [ -z "$description" ] || fill "$out/AGENTS.md" "<一句话说明项目解决什么问题。>" "$description"
-  replace_in_file "$out/AGENTS.md" "采用前需替换项目路径并安装/验证团队技能；本模板不会自行安装技能或授予文件写权限。" \
-    "本文件由 team-agent-harness 部署（来源版本见 \`docs/agents/HARNESS-VERSION\`）；团队技能需另行安装与验证，本文件不会自行安装技能或授予文件写权限。" || true
   # 代码目录
   if [ "$code_dir" = "." ]; then
     fill "$out/AGENTS.md" "代码位于 \`project-name/\`，构建和测试在该目录运行。" "代码位于仓库根目录，构建和测试在根目录运行。"
@@ -344,7 +344,7 @@ commit=$src_commit
 EOF
 
   # ---------- 计划 ----------
-  local files=(AGENTS.md docs/development.md docs/agents/team.md docs/agents/issue-tracker.md docs/agents/domain.md
+  local files=(AGENTS.md docs/development.md docs/feature-map.md docs/agents/team.md docs/agents/issue-tracker.md docs/agents/domain.md
     docs/agents/onboarding.md docs/agents/templates/spec.template.md docs/agents/templates/ticket.template.md
     docs/agents/templates/adr.template.md docs/agents/templates/journal.template.md docs/agents/scripts/ticket-status docs/agents/scripts/push-check
     docs/agents/rule-regression.md docs/agents/rule-log.md docs/agents/workflow.md docs/agents/scripts/rule-check
@@ -452,7 +452,7 @@ EOF
   [ "${#create[@]}" -gt 0 ] || [ "${#newf[@]}" -gt 0 ] || say "没有需要写入的文件（已是最新）。"
 
   local ph="" one
-  for f in AGENTS.md docs/development.md docs/agents/team.md docs/agents/issue-tracker.md docs/agents/domain.md docs/agents/onboarding.md docs/agents/rule-log.md .agents/skills/README.md; do
+  for f in AGENTS.md docs/development.md docs/feature-map.md docs/agents/team.md docs/agents/issue-tracker.md docs/agents/domain.md docs/agents/onboarding.md docs/agents/rule-log.md .agents/skills/README.md; do
     case " ${newf[*]} ${newsame[*]} " in
       *" $f.harness-new "*) one=$(list_placeholders "$out/$f" "$f.harness-new") ;;
       *) one=$(list_placeholders "$out/$f" "$f") ;;
@@ -495,6 +495,7 @@ EOF
   say "     并把 main 设为受保护分支（禁止直接推送与强推），在 MR 审批设置中开启「Reset approvals on push」。"
   say "  4. 每位成员按 docs/agents/onboarding.md 完成入组检查，并在 docs/agents/team.md 登记。"
   say "  5. 查看在途工作：git fetch --prune origin && docs/agents/scripts/ticket-status"
+  say "     在 docs/feature-map.md 中列出现有的用户可见功能（替换占位条目；没跑过验证的写 Not verified），经 MR 合入。"
   say "  6. 按团队实际情况调整 docs/agents/rule-log.md 的预算并补上部署 MR 编号；之后改规则的 MR 附 docs/agents/scripts/rule-check 输出与回归结果。
      升级已部署的仓库时，若既改了检查（docs/agents/scripts/、rule-regression.md）又改了规则文件，依次拆成 MR：先合入只含检查的 MR，需要提高预算时再单独合入预算，最后合入规则部分。"
   say "  注：team-* skills 中只部署了 team-retro（显式调用），其余尚未发布；CONTEXT-MAP.md 与 CONTEXT.md 在首次需要领域术语时再建。"

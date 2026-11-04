@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""推送前的只读检查：当前分支是否在接手陈旧或已离开成员的分支，journal 是否写了 Lessons。
+"""推送前的只读检查：当前分支是否在接手陈旧或已离开成员的分支，journal 是否写了 Lessons，功能地图是否随改动更新。
 
 用法（在 worktree 内，先运行 git fetch --prune origin）：
     docs/agents/scripts/push-check --member <成员ID> [--base REF] [N]
@@ -15,6 +15,9 @@ N 为陈旧天数，默认 7，与 docs/agents/issue-tracker.md 一致。成员 
   WARN OTHER-OWNER     当前分支的票 Owner 是名册中的其他成员：只有用户在当前会话明确要求接手该 MR 时才推送。
   WARN TAKEOVER        当前分支上（尚未进入目标分支）有其他成员的 journal：这是接手，推送后在 MR 中评论说明接手与改动
                        （用户要求接手即包含这条评论，见 docs/agents/team.md 的“接手”）。
+  WARN FEATURE-MAP     分支（相对目标分支）改了源文件（文档、.scratch/、测试以外的文件），但没有改 docs/feature-map.md，
+                       分支上改动的 ticket 也没有写 `涉及功能: none`。启发式提醒：改了用户可见行为就在同一 MR 更新对应条目；
+                       没改就在 ticket 写 `涉及功能: none`。目标分支与 HEAD 都没有 docs/feature-map.md 时不检查。
 有 FAIL 时退出码为 1：不要推送，把输出报告给用户。陈旧分支只报告，由人决定改派或 dropped；
 新 Owner 从目标分支开新分支。本脚本不修改任何文件或分支。
 """
@@ -124,6 +127,27 @@ if since:
             others.add(parts[2])
 if others and not fails:
     warns.append(f"TAKEOVER\t{cur}\t分支上有 {', '.join(sorted(others))} 的 journal：若是接手他人 MR，推送后用 MR 工具在该 MR 中评论说明接手与本次改动；用户要求接手即包含这条评论（见 docs/agents/team.md 的“接手”）")
+
+# 功能地图：分支改了源文件，却没有更新 docs/feature-map.md，也没有 ticket 写 `涉及功能: none`
+FMAP = "docs/feature-map.md"
+NOT_SOURCE = re.compile(r"(^|/)(docs|\.scratch|\.agents|\.gitlab|\.github|tests?|__tests__|spec)/|^AGENTS\.md$|"
+                        r"\.(md|txt|rst)$|(^|/)test_[^/]*$|_test\.[^/]*$|\.(test|spec)\.[^/]*$|(^|/)(LICENSE|CODEOWNERS)[^/]*$")
+base_mb = git("merge-base", target, "HEAD", check=False).strip()
+has_map = any(subprocess.run(["git", "cat-file", "-e", f"{r}:{FMAP}"], capture_output=True).returncode == 0 for r in (target, "HEAD"))
+if base_mb and has_map:
+    branch_files = git("-c", "core.quotePath=false", "diff", "--name-only", f"{base_mb}..HEAD").splitlines()
+    sources = [p for p in branch_files if not NOT_SOURCE.search(p)]
+    if sources and FMAP not in branch_files:
+        none = False
+        for p in branch_files:
+            if TICKET.fullmatch(p) and not p.startswith(".scratch/_done/"):
+                text = git("show", f"HEAD:{p}", check=False)
+                if re.search(r"^涉及功能[:：][ \t]*none[ \t]*$", text, re.M | re.I):
+                    none = True
+        if not none:
+            more = f" 等 {len(sources)} 个" if len(sources) > 3 else ""
+            warns.append(f"FEATURE-MAP\t{cur}\t改了源文件（{', '.join(sources[:3])}{more}），没有更新 {FMAP}，ticket 也没写 `涉及功能: none`："
+                         "改了用户可见行为就在同一 MR 更新对应条目并按其验证取证；没改就在 ticket 写 `涉及功能: none`（见 docs/agents/team.md 的“分支与合并”）")
 
 print(f"# push-check {today}  member={member}  branch={cur or '(detached)'}  target={target.removeprefix('refs/remotes/')}  陈旧阈值 {N} 天")
 for line in fails:
