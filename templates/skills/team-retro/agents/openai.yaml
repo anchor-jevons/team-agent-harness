@@ -1,0 +1,5 @@
+interface:
+  display_name: "Team Retro"
+  short_description: "Propose rule changes with deletions and provenance"
+policy:
+  allow_implicit_invocation: false

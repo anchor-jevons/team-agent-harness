@@ -18,6 +18,7 @@
 | 上游技能 | 团队技能 | 调用方式 | 主要修改 |
 | --- | --- | --- | --- |
 | <grill-with-docs> | <team-grill-with-docs> | <显式/可隐式> | <一句话> |
+| retro（a496f55） | team-retro（随 harness 部署） | 显式 | 只产出规则变更提案 MR：引用已核实事件、先删后加、在 `docs/agents/rule-log.md` 登记来源、机械问题做成检查；许可声明副本在 `team-retro/LICENSE.mattpocock-skills` |
 
 内部依赖引用必须指向团队名称；只改目录名不算完成。
 

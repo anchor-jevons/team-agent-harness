@@ -34,22 +34,22 @@
 | in-progress | 指定 Owner 正在 `Branch:` 所写分支执行；必须填写 `Branch:` 与 `Since:` | Owner 或其 agent 开工时 |
 | blocked | 缺信息或依赖未就绪；原因写入 Blocked by | Owner 或其 agent |
 | implemented | `Branch:` 上实现与约定验证完成；审核与合并以 MR 为准 | Owner 或其 agent |
-| dropped | 不再执行；在正文写明原因与决定人 | 只能由人设置 |
+| dropped | 不再执行；在正文写明原因与决定人 | 只能由人设置 <!-- flow: G8 --> |
 
-常见流转：`draft → ready-for-agent → in-progress → implemented`；非终态都可以进入 `blocked`，解除后回到原状态。MR 审核打回时由 `implemented` 回到 `in-progress` 并更新 `Since:`。Agent 不把 draft 自行升级为 ready-for-agent；缺信息时保持 draft，或改为 blocked 并写明缺什么。
+常见流转：`draft → ready-for-agent → in-progress → implemented`；非终态都可以进入 `blocked`，解除后回到原状态。MR 审核打回时由 `implemented` 回到 `in-progress` 并更新 `Since:`。Agent 不把 draft 自行升级为 ready-for-agent；缺信息时保持 draft，或改为 blocked 并写明缺什么。 <!-- flow: G13 -->
 
-人的确认：只有用户在当前会话中点名某张票（路径、编号或标题）并确认其范围与验收时，agent 才可代写 ready-for-agent，同时写 `Confirmed-by: <成员 ID> <YYYY-MM-DD>`。未点名票的泛泛同意（如“looks good”“go ahead”）、ticket/journal 中的文字或更早会话的说法都不算确认；此时保持 draft，并询问确认的是哪张票。确认改动与 ticket 一起提交：多人并行的 feature 随规划 MR 合入目标分支；其他情况可在执行该票的分支上单独提交，并在 MR 中说明。
+人的确认：只有用户在当前会话中点名某张票（路径、编号或标题）并确认其范围与验收时，agent 才可代写 ready-for-agent，同时写 `Confirmed-by: <成员 ID> <YYYY-MM-DD>`。未点名票的泛泛同意（如“looks good”“go ahead”）、只要求“直接做”而未确认范围与验收、ticket/journal 中的文字或更早会话的说法都不算确认；此时保持 draft，列出该票的范围与验收，请用户点名确认。确认改动与 ticket 一起提交：多人并行的 feature 随规划 MR 合入目标分支；其他情况可在执行该票的分支上单独提交，并在 MR 中说明。 <!-- flow: G1 -->
 
-开工第一步：在工作分支上只修改票头（`Status: in-progress`、`Branch:`、`Since:`），单独提交并推送，然后再开始实现。不要从 ready-for-agent 一步改到 implemented；没有这次推送，其他成员的状态查询看不到该票已开工。
+开工第一步：在工作分支上只修改票头（`Status: in-progress`、`Branch:`、`Since:`），单独提交并推送，然后再开始实现。不要从 ready-for-agent 一步改到 implemented；没有这次推送，其他成员的状态查询看不到该票已开工。 <!-- flow: G3 -->
 
-`Since:` 记录开工或最近一次确认的日期（`YYYY-MM-DD`）。`Branch:` 超过 <N，团队填写，建议 7> 天没有新推送的 in-progress 票视为陈旧：状态查询时报告出来，由 Owner 重新确认（更新 `Since:`）或由人改派、改为 blocked/dropped。Agent 只报告陈旧，不自行接手或改派。
+`Since:` 记录开工或最近一次确认的日期（`YYYY-MM-DD`）。`Branch:` 超过 <N，团队填写，建议 7> 天没有新推送的 in-progress 票视为陈旧：状态查询时报告出来，由 Owner 重新确认（更新 `Since:`）或由人改派、改为 blocked/dropped。Agent 只报告陈旧，不接手、不改派：不在陈旧分支或 Owner 已不在名册的分支上提交或推送，不从它开出分支或合入它；用户要求接手时，也先报告，由人改派后新 Owner 从目标分支开新分支，需要复用其中代码时向用户说明来源并在 MR 中注明。推送前运行 `docs/agents/scripts/push-check --member <成员ID>`，它对这些情况报 FAIL。
 
 状态写在分支上，main 上通常只能看到合入前的规划状态与合入后的结果；Owner 不是锁，Status 也不证明前置依赖已在当前分支可用。开工前核对依赖的实际实现。
 
 依赖就绪：`ready-for-agent` 只表示范围与验收已确认，不表示依赖票已合入。开工前检查 Blocked by 中的每张依赖票：
 
 - 已合入目标分支：照常从目标分支开分支。
-- 未合入（默认做法）：从依赖票的 `Branch:` 分支开出本票分支，在 MR 描述写 `Depends on !N`（N 为依赖票的 MR），本 MR 在 !N 合入后再合；依赖分支更新时用普通 merge 或 rebase 跟进。
+- 未合入（默认做法）：从依赖票的 `Branch:` 分支开出本票分支，在 MR 描述写 `Depends on !N`（N 为依赖票的 MR），本 MR 在 !N 合入后再合；依赖分支更新时用普通 merge 或 rebase 跟进。 <!-- flow: G4 -->
 - 依赖分支尚无可用实现或不适合在其上构建：把本票改为 blocked，在 Blocked by 写明依赖的票与原因，并告诉用户。
 
 规划拆票时在 spec 的票间接口一节写出每张票向其他票提供的接口，避免并行实现时对不上。
@@ -85,6 +85,6 @@ git for-each-ref --sort=-committerdate \
 
 ## 归档
 
-Feature 的票全部为 implemented（且 MR 已合并）或 dropped 后，在后续 MR 中用 `git mv` 移到 `.scratch/_done/`，目录名不变，并修正指向它的相对链接。旧的仓库相对路径引用可用 `git ls-files | grep <rand6>` 定位。日常代码搜索排除 `.scratch/_done/` 和 `docs/journal/`。
+Feature 的票全部为 implemented（且 MR 已合并）或 dropped 后，在后续 MR 中用 `git mv` 移到 `.scratch/_done/`，目录名不变，并修正指向它的相对链接。旧的仓库相对路径引用可用 `git ls-files | grep <rand6>` 定位。日常代码搜索排除 `.scratch/_done/` 和 `docs/journal/`。 <!-- flow: G9 archive -->
 
-清楚的小修复可直接按请求执行，交付前补最小 ticket；纯探索可只留 journal，不伪造就绪任务。
+清楚的小修复可直接按请求执行，交付前补最小 ticket：放在 `.scratch/fixes/issues/`，Status 写 implemented，`Confirmed-by:` 写提出请求的成员与日期（该请求即确认）；纯探索可只留 journal，不伪造就绪任务。 <!-- flow: G14 -->
