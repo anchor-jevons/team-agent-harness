@@ -1,6 +1,6 @@
 # Team Agent Harness
 
-本仓库保存团队 agent harness 的设计、审查和参考模板。可安装的团队 skills 尚未实现。
+本仓库保存团队 agent harness 的设计、审查和参考模板。可安装的团队技能中已提供 team-retro，其余尚未实现。
 
 - 修改设计前读取 `docs/design.md` 与 `docs/review-summary.md`，保留已明确的轻量范围。
 - 修改模板时核对 `templates/README.md` 的目标路径；模板内的路径按目标项目解释，不是本仓库现有文件。
