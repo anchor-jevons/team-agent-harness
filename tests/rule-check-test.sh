@@ -267,4 +267,76 @@ pyedit replace docs/agents/issue-tracker.md ' <!-- flow: G3 -->' ' <!-- flow: G3
 rc_is "只改标记 → PASS" 0
 if grep -q "GATE-TEXT-CHANGED" <<<"$out"; then echo "FAIL 只改标记不应报 GATE-TEXT-CHANGED"; fail=1; else echo "ok   只改标记无 GATE-TEXT-CHANGED"; fi
 git checkout -q -- docs/agents/issue-tracker.md docs/agents/rule-log.md
+
+# S1：既有检查脚本只追加、不删行，同时改规则 → FAIL。新增场景行仍可与规则同 MR。
+git switch -q main; git switch -qc s1
+printf '\nimport sys\nsys.exit(0)\n' >> docs/agents/scripts/rule-check
+echo '- 新规则：绕过。' >> AGENTS.md
+log_row s1s1s1 add AGENTS.md "!1"
+set +e; out=$(git show origin/main:docs/agents/scripts/rule-check | python3 - 2>&1); rc=$?; set -e
+rc_is "S1 追加检查脚本并改规则 → FAIL" 1
+check "S1 既有检查" '与规则文件在同一改动中被修改'
+
+# S2：删除已有流程图不得跳过对照；从未有过流程图则保持「无流程图」。
+git switch -q main; git switch -qc s2
+rm -f docs/agents/workflow.md
+log_row s2s2s2 delete docs/agents/workflow.md "!1"
+run
+rc_is "S2 删除已有流程图 → FAIL" 1
+check "S2 GATE-REMOVED" 'GATE-REMOVED'
+check "S2 残留 flow 标记" 'FLOW-MARK-MISSING'
+if grep -q '无流程图' <<<"$out"; then echo "FAIL S2 删除已有图不应写成无流程图"; fail=1; else echo "ok   S2 没有跳过空图"; fi
+
+never=$tmp/never-flow
+git init -q -b main "$never"
+(
+  cd "$never"
+  git config user.email t@example.com
+  git config user.name t
+  mkdir -p docs/agents
+  printf '%s\n' '# demo' > AGENTS.md
+  printf '%s\n' '# 规则来源与预算' '' '## 预算' '' '| 文件 | 行数上限 | 字节上限 |' '| --- | --- | --- |' '| AGENTS.md | 45 | 4500 |' '' '## 记录' '' '| ID | 操作 | 位置 | 规则摘要 | 来源证据 | 回归结果 | MR | 日期 |' '| --- | --- | --- | --- | --- | --- | --- | --- |' > docs/agents/rule-log.md
+  git add -A
+  git commit -qm init
+  set +e
+  out=$(python3 "$here/templates/scripts/rule-check" --base HEAD 2>&1)
+  rc=$?
+  set -e
+  printf '%s\n' "$rc" > "$tmp/never-rc"
+  printf '%s\n' "$out" > "$tmp/never-out"
+)
+rc=$(cat "$tmp/never-rc")
+out=$(cat "$tmp/never-out")
+rc_is "S2 从未有流程图 → PASS" 0
+check "S2 无流程图" '无流程图'
+if grep -q 'GATE-REMOVED' <<<"$out"; then echo "FAIL S2 从未启用不应报 GATE-REMOVED"; fail=1; else echo "ok   S2 从未启用不报 GATE-REMOVED"; fi
+
+# S3：落后分支按目标 base 尖端的更严预算，而不是共同祖先的旧预算。
+git switch -q main; git switch -qc s3
+python3 - <<'PY'
+from pathlib import Path
+path = Path("AGENTS.md")
+text = path.read_text()
+if not text.endswith("\n"):
+    text += "\n"
+text += "- 填充。\n"
+path.write_text(text)
+data = path.read_bytes()
+lines, size = data.count(b"\n"), len(data)
+if not (40 < lines <= 45 and 4400 < size <= 4500):
+    raise SystemExit(f"S3 fixture out of window: {lines} lines, {size} bytes")
+print(f"S3 fixture {lines} lines {size} bytes")
+PY
+log_row s3s3s3 add AGENTS.md "!1"
+git add AGENTS.md docs/agents/rule-log.md
+git commit -qm "agents still inside old budget"
+git switch -q main
+pyedit replace docs/agents/rule-log.md '| AGENTS.md | 45 | 4500 |' '| AGENTS.md | 40 | 4400 |'
+git commit -qam "tighten AGENTS budget on base tip"
+git push -q origin main
+git switch -q s3
+run
+rc_is "S3 落后分支越过 base 尖端预算 → FAIL" 1
+check "S3 行预算取尖端" '/40 行'
+check "S3 字节预算取尖端" '/4400 字节'
 exit $fail
