@@ -68,4 +68,32 @@ git switch -q main; git switch -qc feature/fm3; mkdir -p pkg/tests docs; echo 't
 run --member raj; checkno "只改测试与文档 → 不报" 'FEATURE-MAP'
 git switch -q main; git switch -qc feature/fm4; ticket 04-eeeeee-e.md raj in-progress feature/fm4; printf '涉及功能: F-run\n' >> "$d/04-eeeeee-e.md"; mkdir -p src; echo 'print(4)' > src/app.py; git add -A; git commit -qm "ticket names F-run, map unchanged"
 run --member raj; check "ticket 写功能 ID 但地图未更新 → 仍 WARN" $'WARN\tFEATURE-MAP\tfeature/fm4'
+
+# R1/R2：中文、空格、ASCII journal；根目录、子目录、附加 worktree 的根与子目录都要看到缺 Lessons
+git switch -q main
+git switch -qc feature/paths
+mkdir -p docs/journal/raj project
+printf '# j\n\n## Next\n\nx\n' > "docs/journal/raj/2026-11-04-cccccc-开发.md"
+printf '# j\n\n## Next\n\nx\n' > "docs/journal/raj/2026-11-04-dddddd-my work.md"
+printf '# j\n\n## Next\n\nx\n' > docs/journal/raj/2026-11-04-ffffff-ascii.md
+printf '# j\n\n## Lessons\n\nnone\n' > docs/journal/raj/2026-11-04-eeeeee-ok.md
+git add -A
+git commit -qm "journal paths"
+git config core.quotePath true
+git worktree add --detach "$tmp/wt-paths" HEAD >/dev/null
+mkdir -p "$tmp/wt-paths/project"
+run_at() {
+  set +e
+  out=$(cd "$1" && python3 "$script" --member raj 2>&1)
+  rc=$?
+  set -e
+}
+for where in "$tmp/w" "$tmp/w/project" "$tmp/wt-paths" "$tmp/wt-paths/project"; do
+  run_at "$where"
+  check "中文 journal 缺 Lessons @$where" '开发.md'
+  check "空格 journal 缺 Lessons @$where" 'my work.md'
+  check "ASCII journal 缺 Lessons @$where" 'ffffff-ascii.md'
+  checkno "有 Lessons 的不报 @$where" 'eeeeee-ok.md'
+  checkrc "journal 路径 rc 1 @$where" 1
+done
 exit $fail

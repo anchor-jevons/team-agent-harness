@@ -28,10 +28,25 @@ import sys
 
 PREFIX = "refs/remotes/origin/"
 TICKET = re.compile(r"\.scratch/([^/]+)/issues/([^/]+\.md)")
+ROOT = subprocess.run(
+    ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True
+).stdout.strip()
 
 
 def git(*args, check=True):
-    return subprocess.run(["git", *args], capture_output=True, text=True, check=check).stdout
+    return subprocess.run(
+        ["git", "-C", ROOT, *args], capture_output=True, text=True, check=check
+    ).stdout
+
+
+def git_z(*args, check=True):
+    """路径清单必须 -z 再按 NUL 切开。只关 core.quotePath 仍会在空格处被 split 拆开。"""
+    raw = subprocess.run(["git", "-C", ROOT, *args], capture_output=True, check=check).stdout
+    if raw.endswith(b"\0"):
+        raw = raw[:-1]
+    if not raw:
+        return []
+    return [part.decode("utf-8", "surrogateescape") for part in raw.split(b"\0")]
 
 
 def usage(msg):
@@ -77,14 +92,16 @@ mine = {b for b in (cur, upstream.removeprefix("origin/") if upstream.startswith
 
 
 def ancestor(a, b):
-    return subprocess.run(["git", "merge-base", "--is-ancestor", a, b]).returncode == 0
+    return subprocess.run(
+        ["git", "-C", ROOT, "merge-base", "--is-ancestor", a, b]
+    ).returncode == 0
 
 
 for ref in refs:
     if ref == target:
         continue
     name = ref.removeprefix(PREFIX)
-    for path in git("ls-tree", "-r", "--name-only", "--full-tree", ref, "--", ".scratch").split():
+    for path in git_z("ls-tree", "-z", "-r", "--name-only", "--full-tree", ref, "--", ".scratch"):
         if path.startswith(".scratch/_done/") or not TICKET.fullmatch(path):
             continue
         hdr = dict(re.findall(r"^(Owner|Status|Branch): *(.*)$", git("show", f"{ref}:{path}"), re.M))
@@ -107,7 +124,7 @@ for ref in refs:
 # 只看本次将推送的提交：远端已有同名分支时相对它，否则相对与目标分支的 merge-base
 pushed = PREFIX + cur if cur and PREFIX + cur in refs else ""
 since = git("merge-base", pushed, "HEAD", check=False).strip() if pushed else git("merge-base", target, "HEAD", check=False).strip()
-changed = git("diff", "--name-only", "--diff-filter=AM", f"{since}..HEAD", "--", "docs/journal").split() if since else []
+changed = git_z("diff", "-z", "--name-only", "--diff-filter=AM", f"{since}..HEAD", "--", "docs/journal") if since else []
 for path in changed:
     if not path.endswith(".md"):
         continue
@@ -121,7 +138,7 @@ for path in changed:
 others = set()
 if since:
     base_mb = git("merge-base", target, "HEAD", check=False).strip()
-    for path in git("diff", "--name-only", "--diff-filter=AM", f"{base_mb}..HEAD", "--", "docs/journal").split() if base_mb else []:
+    for path in git_z("diff", "-z", "--name-only", "--diff-filter=AM", f"{base_mb}..HEAD", "--", "docs/journal") if base_mb else []:
         parts = path.split("/")
         if len(parts) > 3 and parts[2] != member:
             others.add(parts[2])
@@ -133,9 +150,12 @@ FMAP = "docs/feature-map.md"
 NOT_SOURCE = re.compile(r"(^|/)(docs|\.scratch|\.agents|\.gitlab|\.github|tests?|__tests__|spec)/|^AGENTS\.md$|"
                         r"\.(md|txt|rst)$|(^|/)test_[^/]*$|_test\.[^/]*$|\.(test|spec)\.[^/]*$|(^|/)(LICENSE|CODEOWNERS)[^/]*$")
 base_mb = git("merge-base", target, "HEAD", check=False).strip()
-has_map = any(subprocess.run(["git", "cat-file", "-e", f"{r}:{FMAP}"], capture_output=True).returncode == 0 for r in (target, "HEAD"))
+has_map = any(
+    subprocess.run(["git", "-C", ROOT, "cat-file", "-e", f"{r}:{FMAP}"], capture_output=True).returncode == 0
+    for r in (target, "HEAD")
+)
 if base_mb and has_map:
-    branch_files = git("-c", "core.quotePath=false", "diff", "--name-only", f"{base_mb}..HEAD").splitlines()
+    branch_files = git_z("diff", "-z", "--name-only", f"{base_mb}..HEAD")
     sources = [p for p in branch_files if not NOT_SOURCE.search(p)]
     if sources and FMAP not in branch_files:
         none = False

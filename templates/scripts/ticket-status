@@ -20,10 +20,25 @@ import sys
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 7
 PREFIX = "refs/remotes/origin/"
 TICKET = re.compile(r"\.scratch/([^/]+)/issues/([^/]+\.md)")
+ROOT = subprocess.run(
+    ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True
+).stdout.strip()
 
 
 def git(*args, check=True):
-    return subprocess.run(["git", *args], capture_output=True, text=True, check=check).stdout
+    return subprocess.run(
+        ["git", "-C", ROOT, *args], capture_output=True, text=True, check=check
+    ).stdout
+
+
+def git_z(*args, check=True):
+    """Git 路径清单用 -z，按 NUL 切开。quotePath 只改显示，中文和空格路径仍会被引号拆坏。"""
+    raw = subprocess.run(["git", "-C", ROOT, *args], capture_output=True, check=check).stdout
+    if raw.endswith(b"\0"):
+        raw = raw[:-1]
+    if not raw:
+        return []
+    return [part.decode("utf-8", "surrogateescape") for part in raw.split(b"\0")]
 
 
 def tip_date(ref):
@@ -31,7 +46,7 @@ def tip_date(ref):
 
 
 def ticket_paths(ref):
-    return git("ls-tree", "-r", "--name-only", "--full-tree", ref, "--", ".scratch").split()
+    return git_z("ls-tree", "-z", "-r", "--name-only", "--full-tree", ref, "--", ".scratch")
 
 
 def header(ref, path):

@@ -37,4 +37,36 @@ git switch -q main; ticket 03-cccccc-c.md ken dropped ken/c "$old"; git commit -
 git fetch -q --prune origin; out=$(python3 "$script" 7); echo "$out"
 checkno "03 dropped on main → 不报告" '03-cccccc-c.md'
 check "01 仍报告" '01-aaaaaa-a.md'
+
+# R1/R2：中文、空格路径；仓库根、子目录、附加 worktree 的根与子目录
+git switch -q main
+git switch -qc feature/unicode
+mkdir -p ".scratch/登录功能-ffffff/issues" ".scratch/my feature-eeeeee/issues" project
+printf '# t\n\nOwner: ken\nStatus: in-progress\nConfirmed-by: None\nSpec: None\nBranch: feature/unicode\nSince: %s\n' "$(date +%F)" \
+  > ".scratch/登录功能-ffffff/issues/01-aaaaaa-登录.md"
+printf '# t\n\nOwner: alice\nStatus: in-progress\nConfirmed-by: None\nSpec: None\nBranch: feature/space\nSince: %s\n' "$(date +%F)" \
+  > ".scratch/my feature-eeeeee/issues/02-bbbbbb-space ticket.md"
+git add -A
+git commit -qm "unicode and space tickets"
+git branch -q feature/space
+git push -q origin feature/unicode feature/space
+git fetch -q --prune origin
+git config core.quotePath true
+run_status() {
+  set +e
+  out=$(cd "$1" && python3 "$script" 7 2>&1)
+  set -e
+}
+for where in "$tmp/w" "$tmp/w/project"; do
+  run_status "$where"
+  check "中文票 @$where" '01-aaaaaa-登录.md'
+  check "空格票 @$where" '02-bbbbbb-space ticket.md'
+done
+git worktree add --detach "$tmp/wt-status" HEAD >/dev/null
+mkdir -p "$tmp/wt-status/project"
+for where in "$tmp/wt-status" "$tmp/wt-status/project"; do
+  run_status "$where"
+  check "中文票 @$where" '01-aaaaaa-登录.md'
+  check "空格票 @$where" '02-bbbbbb-space ticket.md'
+done
 exit $fail
