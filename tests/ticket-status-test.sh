@@ -69,4 +69,24 @@ for where in "$tmp/wt-status" "$tmp/wt-status/project"; do
   check "中文票 @$where" '01-aaaaaa-登录.md'
   check "空格票 @$where" '02-bbbbbb-space ticket.md'
 done
+
+# R4：目标分支上的改派（新 Owner，正文有决定人）合入后，不再报告陈旧 in-progress
+git switch -q main
+git switch -qc ken/reassign
+printf '# t\n\nOwner: ken\nStatus: in-progress\nConfirmed-by: None\nSpec: None\nBranch: ken/reassign\nSince: %s\n' "$old" \
+  > "$d/04-ffffff-re.md"
+git add -A
+GIT_COMMITTER_DATE="$old 12:00" git commit -qm "ken reassign ticket"
+git push -q origin ken/reassign
+git switch -q main
+printf '# t\n\nOwner: raj\nStatus: ready-for-agent\nConfirmed-by: None\nSpec: None\nBranch: None\nSince: %s\n\n决定人: mei %s 改派离开成员的票\n' "$(date +%F)" "$(date +%F)" \
+  > "$d/04-ffffff-re.md"
+git add -A
+git commit -qm "reassign from target"
+git push -q origin main
+git fetch -q --prune origin
+out=$(python3 "$script" 7)
+echo "$out"
+checkno "改派合入目标分支后不再报告" '04-ffffff-re.md'
+check "改派后其他票仍报告" '01-aaaaaa-a.md'
 exit $fail
