@@ -7,6 +7,7 @@ Spec: <spec 引用（仓库相对路径）；没有则写 None>
 涉及功能: <docs/feature-map.md 中的条目 ID，如 F-settle，多个用逗号分隔；新增功能写 new（同一 MR 新增条目后改为其 ID）；不改变用户可见行为写 none；不确定时问人>
 Branch: <in-progress 时必填：工作分支名，即该票 MR 的源分支（接手者推回原分支时不改）；其他状态可保留最近分支或写 None>
 Since: <in-progress 时必填：YYYY-MM-DD，开工或最近确认日期；否则写 None>
+开工假设: <非平凡工作开工前由人写的一行预期结果或失败标准；平凡任务写 None>
 MR: <可选：GitLab MR 链接，仅作引用；没有则删除本行>
 
 ## What to build

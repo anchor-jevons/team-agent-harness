@@ -156,3 +156,12 @@ Agent 能力 reviewer 对综合设计再次复核，确认关键问题已在设�
 - Lessons：4/4 份 journal 有非空 Lessons（10-31 为 1/12），但内容都是个人 `codex-cli` 技能找不到 `codex` 命令，没有写目标分支上已有的失败测试。
 - 陈旧分支：5/5 没有在离开成员的分支上提交或推送；1 次提议从同样陈旧的依赖分支开分支（先请用户确认），据此在 team.md 写明依赖分支陈旧时除外（`18a00b4`）。
 - 接手 MR 评论：AGENTS 原句“评论只在用户明确指示时进行”与 team.md“接手时评论”冲突，两个模型都选择不评论。改为“用户让你接手即包含接手评论”，push-check 增加 WARN TAKEOVER（`dc9bab0`）后 2/2 评论。
+
+## 2026-11-04 开工假设与绿灯边界
+
+依据：Addy Osmani《Critical thinking when agents do the work》（X，2026-11-03，见[来源](references.md#addy-osmani)）里的两点做法：非平凡工作前先写下预期；绿灯要同时写明查了什么、没查什么。本次只改模板与设计里的字段说明，不新增闸门，不改 G5 的规则原文，不提高预算，不改 `AGENTS.md` 入口。
+
+- journal 的 Verification 增加「查了什么」「没查什么」。Not verified 仍写没跑的检查，Lessons 仍必填。
+- ticket 增加票头 `开工假设:`，平凡任务写 None，agent 不编造。
+- team.md 在 G5 附近加一句非闸门说明：reviewer 说不出这次检查会漏掉什么，就不要快速 approve。流程图与闸门表未改。
+- 没有新增 push-check 或 rule-check 的 FAIL。这些字段是否被遵守尚未试点。
