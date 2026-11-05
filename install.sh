@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# team-agent-harness 一键部署：把规则与模板部署到目标 Git 仓库（不安装 team-* skills）。
+# team-agent-harness 一键部署：把规则、模板和已提供的 team-retro 部署到目标 Git 仓库。
+# 其余 team-* 阶段技能尚未发布，不在本次部署中。
 #
 # 本地：  /path/to/team-agent-harness/install.sh [选项] [目标目录]
 # 远程：  curl -fsSL https://raw.githubusercontent.com/anchor-jevons/team-agent-harness/main/install.sh | bash -s -- [选项] [目标目录]
@@ -26,7 +27,8 @@ usage() {
 用法：install.sh [选项] [目标目录]
 
 把 team-agent-harness 的规则与模板部署到目标 Git 仓库（默认为当前目录所在仓库，可在子目录运行）。
-不覆盖任何已有文件：已存在且内容不同的文件改写为 <文件>.harness-new，供手工合并。
+不覆盖任何已有文件：已存在且内容不同的文件改为 <文件>.harness-new，供手工合并。
+该 .harness-new 若已存在且内容不同，安装停止且不覆盖。写入前拒绝指向仓库外的符号链接和悬空链接。
 
 项目信息（未提供时，有终端则交互询问，否则用默认值或保留占位符）：
   --project-name NAME     项目名称，用于 AGENTS.md 标题（默认：仓库目录名）
@@ -76,6 +78,105 @@ trim() {
   s=${s#"${s%%[![:space:]]*}"}
   s=${s%"${s##*[![:space:]]}"}
   printf '%s' "$s"
+}
+
+# 打印已存在路径的物理路径。悬空链接或解析失败时返回 1。递归只走符号链接链。
+resolve_existing_path() {
+  local p=$1 depth=${2:-0} target dir
+  [ "$depth" -lt 40 ] || return 1
+  if [ -L "$p" ]; then
+    [ -e "$p" ] || return 1
+    target=$(readlink "$p") || return 1
+    case $target in
+      /*) resolve_existing_path "$target" $((depth + 1)) ;;
+      *)
+        dir=$(cd "$(dirname "$p")" && pwd -P) || return 1
+        resolve_existing_path "$dir/$target" $((depth + 1))
+        ;;
+    esac
+    return
+  fi
+  if [ -d "$p" ]; then
+    (cd "$p" && pwd -P)
+    return
+  fi
+  dir=$(cd "$(dirname "$p")" && pwd -P) || return 1
+  printf '%s/%s\n' "$dir" "$(basename "$p")"
+}
+
+# 确认相对路径 rel 的写入会留在 root 内。成功无输出；失败把原因打到 stdout 并返回 1。
+# 父目录或叶子上的符号链接：悬空则拒绝（-L 为真且 -e 为假）；能解析时必须落在 root 内。
+check_write_path() {
+  local root=$1 rel=$2 cur=$1 rest=$2 part next resolved dir
+  while [ -n "$rest" ]; do
+    case $rest in
+      */*) part=${rest%%/*}; rest=${rest#*/} ;;
+      *) part=$rest; rest= ;;
+    esac
+    next="$cur/$part"
+    if [ -L "$next" ]; then
+      if [ ! -e "$next" ]; then
+        printf '%s\n' "拒绝写入：$rel 含悬空符号链接（${next#"$root"/}），无法确认仍在仓库内"
+        return 1
+      fi
+      resolved=$(resolve_existing_path "$next") || {
+        printf '%s\n' "拒绝写入：无法解析符号链接 $rel"
+        return 1
+      }
+      case "$resolved" in
+        "$root"|"$root"/*) ;;
+        *)
+          printf '%s\n' "拒绝写入：$rel 的符号链接指向仓库外（$resolved）"
+          return 1
+          ;;
+      esac
+      if [ -n "$rest" ] && [ ! -d "$resolved" ]; then
+        printf '%s\n' "拒绝写入：$rel 的中间符号链接不是目录"
+        return 1
+      fi
+      cur=$resolved
+    elif [ -d "$next" ]; then
+      cur=$(cd "$next" && pwd -P) || {
+        printf '%s\n' "拒绝写入：无法进入 $rel"
+        return 1
+      }
+      case "$cur" in
+        "$root"|"$root"/*) ;;
+        *)
+          printf '%s\n' "拒绝写入：$rel 逃出仓库（$cur）"
+          return 1
+          ;;
+      esac
+    elif [ -e "$next" ]; then
+      if [ -n "$rest" ]; then
+        printf '%s\n' "拒绝写入：$rel 的中间路径不是目录"
+        return 1
+      fi
+      dir=$(cd "$(dirname "$next")" && pwd -P) || return 1
+      case "$dir" in
+        "$root"|"$root"/*) return 0 ;;
+        *)
+          printf '%s\n' "拒绝写入：$rel 逃出仓库（$dir）"
+          return 1
+          ;;
+      esac
+    else
+      case "$cur" in
+        "$root"|"$root"/*) return 0 ;;
+        *)
+          printf '%s\n' "拒绝写入：$rel 将写出仓库（$cur）"
+          return 1
+          ;;
+      esac
+    fi
+  done
+  case "$cur" in
+    "$root"|"$root"/*) return 0 ;;
+    *)
+      printf '%s\n' "拒绝写入：$rel 将写出仓库（$cur）"
+      return 1
+      ;;
+  esac
 }
 
 # 交互询问：ask 变量名 提示 默认值
@@ -350,22 +451,42 @@ EOF
     docs/agents/rule-regression.md docs/agents/rule-log.md docs/agents/workflow.md docs/agents/scripts/rule-check
     .agents/skills/README.md .agents/skills/team-retro/SKILL.md .agents/skills/team-retro/agents/openai.yaml
     .agents/skills/team-retro/LICENSE.mattpocock-skills docs/agents/HARNESS-VERSION)
-  local create=() same=() newf=() newsame=() ign=() a b
+  # 任何 mkdir/cp 之前：叶子和每一级父目录都不得通过符号链接写出仓库。悬空链接用 -L 识别。
+  local link_errors="" rel err
   for f in "${files[@]}"; do
-    if [ -d "$top/$f" ]; then die "$f 是目录，无法部署"; fi
-    if [ ! -e "$top/$f" ]; then
+    for rel in "$f" "$f.harness-new"; do
+      err=$(check_write_path "$top" "$rel") || link_errors="${link_errors}${err}"$'\n'
+    done
+  done
+  if [ -n "$link_errors" ]; then
+    printf '%s' "$link_errors" >&2
+    die "目标路径含有指向仓库外或悬空的符号链接，已停止，未写入任何文件"
+  fi
+  local create=() same=() newf=() newsame=() ign=() blocked=() a b
+  for f in "${files[@]}"; do
+    if [ -d "$top/$f" ] && [ ! -L "$top/$f" ]; then die "$f 是目录，无法部署"; fi
+    # -e 跟随链接，会把悬空链接当成不存在。预检已拒绝悬空链接；这里再用 -L 避免误判。
+    if [ ! -e "$top/$f" ] && [ ! -L "$top/$f" ]; then
       create+=("$f")
       if git -C "$top" check-ignore -q --no-index "$f" 2>/dev/null; then ign+=("$f"); fi
       continue
     fi
     a=$(cat "$top/$f"; printf x); b=$(cat "$out/$f"; printf x)
     if [ "$a" = "$b" ]; then same+=("$f"); continue; fi
-    if [ -e "$top/$f.harness-new" ]; then
+    if [ -e "$top/$f.harness-new" ] || [ -L "$top/$f.harness-new" ]; then
       a=$(cat "$top/$f.harness-new"; printf x)
       if [ "$a" = "$b" ]; then newsame+=("$f.harness-new"); continue; fi
+      # 已有且不同的人工合并稿：不覆盖，整次安装在写入前停止。
+      blocked+=("$f.harness-new")
+      continue
     fi
     newf+=("$f.harness-new")
   done
+  if [ ${#blocked[@]} -gt 0 ]; then
+    say "以下 .harness-new 已存在且与新模板不同，未覆盖、未写入任何文件："
+    for f in "${blocked[@]}"; do say "  ! $f"; done
+    die "请先合并或移走这些人工合并稿后再运行"
+  fi
 
   for f in .scratch/x/issues/01-abcdef-x.md docs/journal/x/x.md; do
     if git -C "$top" check-ignore -q --no-index "$f" 2>/dev/null; then
@@ -429,8 +550,12 @@ EOF
     done
     if [ "$do_commit" = 1 ]; then
       git -C "$top" add -- "${commit_files[@]}"
+      # 只给本次新建且纳入本次提交的脚本标可执行。不要改动本应保留的已有文件的 index 模式。
       for f in ticket-status push-check rule-check; do
-        git -C "$top" update-index --chmod=+x -- "docs/agents/scripts/$f" 2>/dev/null || true
+        rel="docs/agents/scripts/$f"
+        case " ${commit_files[*]} " in
+          *" $rel "*) git -C "$top" update-index --chmod=+x -- "$rel" ;;
+        esac
       done
       git -C "$top" commit -q -m "chore: 部署 team-agent-harness 规则与模板（${src_commit:0:12}）" \
         -m "来源：$repo ref=$src_ref commit=$src_commit" -m "由 install.sh 生成；team-* skills 中只包含 team-retro。" \

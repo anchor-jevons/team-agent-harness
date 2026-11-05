@@ -69,7 +69,8 @@ curl -fsSL https://raw.githubusercontent.com/anchor-jevons/team-agent-harness/<�
 行为约定：
 
 - 目标必须是 Git 工作区；工作区不干净时拒绝执行（`--force` 例外，且只提交脚本创建的文件）。有终端时询问未提供的值，否则使用默认值或保留占位符。
-- 不覆盖任何已有文件。内容相同的文件跳过；已有且不同的文件（常见于 `AGENTS.md`、`docs/development.md`）在旁边写 `<文件>.harness-new`，不提交，由人合并后删除。重复运行不会产生新改动。
+- 不覆盖任何已有文件。内容相同的文件跳过；已有且不同的文件（常见于 `AGENTS.md`、`docs/development.md`）在旁边写 `<文件>.harness-new`，不提交，由人合并后删除。该 sidecar 若已存在且内容不同，安装停止且不覆盖。没有这种未合并稿时，重复运行不会产生新改动。
+- 写入前检查每个目标及其父目录。指向仓库外的符号链接，以及悬空链接（`test -L` 为真且目标不存在），都会拒绝本次安装且不写任何文件。解析后仍在仓库内的链接可以写入。
 - `CONTEXT-MAP.md` 与 `CONTEXT.md` 不创建；不读写 `~/.codex`；不推送、不创建 MR。
 - `docs/agents/HARNESS-VERSION` 记录来源仓库、ref 与提交 SHA，升级时以此为基线对比模板变化。
 - `docs/agents/rule-log.md` 的预算是起始建议值，部署后按团队实际情况调整；之后修改规则文件的 MR 附 `docs/agents/scripts/rule-check` 输出与 `docs/agents/rule-regression.md` 中受影响场景的结果，见 `team.md` 的“规则迭代与保护”。`docs/agents/workflow.md` 的闸门表引用 `team.md` 与 `issue-tracker.md` 的原句；部署后若改写这些句子，同一 MR 中同步更新闸门表，否则 `rule-check` 报 GRAPH-RULE-MISMATCH。规则中描述流程步骤的句子末尾带 `<!-- flow: <ID> -->` 标记（ID 为图中的节点或闸门），`rule-check` 双向核对标记与图；改写这些句子时保留标记。升级已部署的仓库时，若同时改动检查（`docs/agents/scripts/`、`rule-regression.md` 的既有内容）与规则文件，`rule-check` 判 FAIL；依次拆成 MR：先合入只含检查的，需要提高预算时再单独合入预算（预算取 base 与当前中较严的值），最后合入规则部分。
