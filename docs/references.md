@@ -35,3 +35,7 @@
 - [Worktrees](https://learn.chatgpt.com/docs/environments/git-worktrees)
 
 CLI 发现探测使用 `codex-cli 0.154.0-alpha.6.2`。官方页面及宿主行为可能变化，升级后需要重新确认实际技能来源、根目录发现与文件写权限。
+
+## Addy Osmani
+
+- [Critical thinking when agents do the work](https://x.com/addyosmani/status/2117512471930167377)（X，2026-11-03）。本仓库只采用其中两点，写进 ticket 的 `开工假设:` 和 journal Verification 的「查了什么」「没查什么」，以及 reviewer 不要在说不出检查缺口时快速 approve。未把它的其余个人习惯写进规则，也未把这两点当作已经试点验证的行为。

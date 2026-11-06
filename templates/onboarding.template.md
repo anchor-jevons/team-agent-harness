@@ -5,14 +5,14 @@
 ## 版本与入口
 
 - [ ] Codex 版本不低于团队最低版本：<团队填写，例如 `codex --version` 的最低值>。
-- [ ] 常用入口（CLI/桌面/IDE）已按团队试点结论确认可以发现根 `AGENTS.md` 与 `.agents/skills/`。
+- [ ] 常用入口（CLI/桌面/IDE）能发现根 `AGENTS.md` 与 `.agents/skills/`。
 
 ## 个人配置
 
 - [ ] 检查 `~/.codex/AGENTS.md` 与 `~/.codex/AGENTS.override.md`（或 `CODEX_HOME` 下同名文件），确认没有与团队规则冲突的指令。
 - [ ] 本仓库内没有个人添加的 `AGENTS.override.md`。
 - [ ] 也使用其他 agent 工具时，检查其个人全局指令（如 `~/.claude/CLAUDE.md`、`~/.config/opencode/AGENTS.md`、`~/.zcode/AGENTS.md`），没有与团队规则冲突的内容。
-- [ ] 如开启了个人记忆（Claude Code auto memory、Codex memories、ZCode 项目记忆等），知道它只存在本机：与仓库规则冲突时以仓库规则为准并报告；团队需要的教训写进 journal 的 `Lessons`，经 `team-retro` 提案进入规则。
+- [ ] 如开启了个人记忆（Claude、Codex、ZCode 等），它只在本机：与仓库规则冲突时以仓库规则为准并报告；团队需要的教训写进 journal 的 `Lessons`，经 `team-retro` 提案进入规则。
 - [ ] 个人全局技能中没有与团队技能同名的版本；安装了原版 Matt skills 时，确认阶段入口使用的是 `team-*` 版本；个人技能（如通用 code-review）与仓库流程冲突时以仓库为准。
 
 ## 权限与身份
@@ -26,3 +26,4 @@
 
 - [ ] 读过 `AGENTS.md`、`docs/agents/team.md`、`docs/agents/issue-tracker.md` 与 `docs/feature-map.md`。
 - [ ] 运行过一次 tracker 中的跨分支状态查询。
+- [ ] 请 agent 前先写一行开工假设；绿灯写明查了什么、没查什么。

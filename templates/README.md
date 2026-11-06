@@ -34,7 +34,7 @@ Spec、Ticket、ADR、Journal 四个模板另外原样复制到目标仓库的 `
 
 功能地图（`docs/feature-map.md`）像 sitemap 一样列出面向用户的功能：ID、作用、入口（CLI 命令、页面与 DOM 元素、快捷键、API）、可运行的验证步骤、Owner 与最近验证。Agent 先用它把含糊的请求对到具体功能，对不上就问人；改用户可见行为的 MR 同时更新条目，ticket 用 `涉及功能:` 引用条目 ID，`push-check` 对漏更新给出 WARN FEATURE-MAP。思路来自 poteto 关于 agent 自我验证的演讲（“A feature map gives context. A CLI gives control.”）；本仓库不提供验证 CLI，条目的“验证”写项目已有的命令。
 
-没有领域术语时，无需创建 map/CONTEXT 空壳；首次产生定义时两者同时落地。小任务可以只有 ticket。ADR 与 journal 按实际工作产生。新建 ticket 默认 `Status: draft`、`Owner: None`，由人确认后改为 ready-for-agent 并记录 `Confirmed-by:`。
+没有领域术语时，无需创建 map/CONTEXT 空壳；首次产生定义时两者同时落地。小任务可以只有 ticket。ADR 与 journal 按实际工作产生。新建 ticket 默认 `Status: draft`、`Owner: None`，由人确认后改为 ready-for-agent 并记录 `Confirmed-by:`。`开工假设:` 在非平凡工作开工前由人写一行预期或失败标准，平凡任务写 None。Journal 的 Verification 写明「查了什么」与「没查什么」；绿灯只证明前者。
 
 后续接入前完成[设计中的适配清单](../docs/design.md#必须进入团队版本的兼容修正)与[真实试点](../docs/validation.md)。
 

@@ -128,7 +128,7 @@ Codex 官方文档说明：全局 `~/.codex` 的 `AGENTS.override.md`/`AGENTS.md
 
 Ticket 的仓库相对路径是标识，例如 `.scratch/user-login-a3f9c2/issues/01-b71e04-login-api.md`。Feature 目录和 ticket 文件名都带创建时生成的 6 位随机串（rand6）。v4 的“追加票使用未占用编号”和“slug 仓库内唯一”只能在本地 worktree 检查，与被否掉的“ADR 最大号 +1”是同类缺陷：两条分支各加一个 `03-*.md`，或同时建 `.scratch/user-login/`，都能干净合并并静默混在一起。随机串让冲突概率可以忽略，不依赖人工协调；`NN` 只保留为阅读顺序。所有引用统一写仓库相对路径（可同时给出相对链接），以便 `git grep` 反查依赖。
 
-最小正文：Owner、Status、What to build、验收条件；Confirmed-by、Spec、Branch、Since、Blocked by、Context、Handoff 和可选的 MR 引用按模板填写。Owner 与 Status 只在 ticket 中维护；`MR:` 仅为指向 GitLab MR 的引用，审核与合并仍在 MR 中进行。Owner 使用 team.md 名册中的成员 ID，不能从 git 配置或目录名猜测真实任务负责人；未经人指定时写 `None`，agent 不代填。
+最小正文：Owner、Status、What to build、验收条件；Confirmed-by、Spec、Branch、Since、Blocked by、Context、Handoff、可选的开工假设（非平凡工作开工前的一行预期或失败标准，平凡任务写 None）和可选的 MR 引用按模板填写。Owner 与 Status 只在 ticket 中维护；`MR:` 仅为指向 GitLab MR 的引用，审核与合并仍在 MR 中进行。Owner 使用 team.md 名册中的成员 ID，不能从 git 配置或目录名猜测真实任务负责人；未经人指定时写 `None`，agent 不代填。
 
 执行状态：`draft`（默认）、`ready-for-agent`、`in-progress`、`blocked`、`implemented`、`dropped`。新票默认 draft，只有人能确认为 ready-for-agent 或标为 dropped，避免拆票结果被当作已审核。用户在会话中点名某张票并确认时，agent 可以代写该状态并记录 `Confirmed-by:`；未点名的“go ahead”不算确认。缺信息时保持 draft 或标 blocked 并写明原因。in-progress 必须写 `Branch:` 与 `Since:`，使 main 或其他分支上看到的状态能找到对应分支；超过团队约定天数没有推送视为陈旧，由人确认或改派。`implemented` 只表示所记录分支实现及约定验证完成；MR 打回时回到 in-progress，审核/合并结果查看 MR。状态词也不证明前置依赖已经在当前分支可用。
 
@@ -154,7 +154,7 @@ ADR 按需创建。草稿（proposed）允许修订；已接受（accepted）的
 
 关键结论在澄清时就写入 spec/CONTEXT/ADR。Journal 在实质工作阶段、暂停、交接或交付时生成；同一阶段可更新同一文件。正常 MR 审查下保留事实，发现旧记录错误时明确更正。
 
-字段只在 [journal 模板](../templates/journal.template.md)定义。有真实提交时可记录 SHA；若验证包含未提交修改，明确写出，不能把 HEAD 当成全部被验证内容。Journal 不写凭证、内部地址或原始日志。
+字段只在 [journal 模板](../templates/journal.template.md)定义。有真实提交时可记录 SHA；若验证包含未提交修改，明确写出，不能把 HEAD 当成全部被验证内容。绿灯只证明 Verification 里「查了什么」点名的性质，并写出至少一项「没查什么」。Journal 不写凭证、内部地址或原始日志。
 
 每位成员独立目录，文件名 `<YYYY-MM-DD>-<rand6>-<topic>.md`，与 ADR 同样的“日期-随机串-主题”顺序，rand6 区分同日多会话。日志避免复制 spec 或 ADR 正文；长测试结果可引用可获取的 CI/MR 证据。仅本机临时文件不是其他成员可获取的交接证据。
 
@@ -179,7 +179,7 @@ Codex 管理的 worktree 可能 detached HEAD，记录实际 HEAD；创建 MR �
 - 不混入用户原有无关修改；若工作树复杂，先标明任务范围和待排除变更。
 - Review 发现问题后修复、执行受影响验证，再确认实际交付版本。单纯生成一份报告不表示所有 findings 已处理。
 - 变基、解决冲突或共享需求改变后，判断哪些验证失效并补跑。旧日志保留历史事实，不伪称验证覆盖新代码。
-- GitLab MR 承担正式人工 review；代码和相关任务/决策/验证记录尽量同 MR 审查。
+- GitLab MR 承担正式人工 review；代码和相关任务/决策/验证记录尽量同 MR 审查。Reviewer 说不出这次检查会漏掉什么时，不要快速 approve。
 
 ## 三个 subagent 的意见如何取舍
 

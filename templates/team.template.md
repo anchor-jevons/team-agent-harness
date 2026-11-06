@@ -42,6 +42,8 @@
 
 新增或改变用户可见行为的 MR，在同一 MR 中更新 `docs/feature-map.md` 的对应条目（按条目验证后写“最近验证”），并在 ticket 写 `涉及功能:`；reviewer 在 approve 前核对，缺少时打回（push-check 对此报 WARN FEATURE-MAP）。 <!-- flow: G5 -->
 
+Reviewer 说不出这次检查会漏掉什么时，不要快速 approve，改为要求真实 review。
+
 ## 规则迭代与保护
 
 规则（`AGENTS.md`、`docs/agents/`、`.agents/skills/`）只经 MR 修改，来源是真实任务：
