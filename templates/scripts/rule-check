@@ -8,7 +8,8 @@
 规则文件 = AGENTS.md、docs/agents/ 与 .agents/skills/ 下的文件（team.md 名册表格行视为数据）。比较范围是
 base 与 HEAD 的 merge-base 到当前工作区（含未提交的已跟踪改动和未跟踪的新文件）。预算与记录格式见
 docs/agents/rule-log.md，回归场景见 docs/agents/rule-regression.md，流程图见 docs/agents/workflow.md。
-预算取 base 与当前两者中较严的值：提高或删除预算要先单独合入。不修改任何文件。
+生效预算取 --base 尖端与当前工作区中较严的值，不用 merge-base 上的旧预算；改动集合仍相对 merge-base。
+提高或删除预算要先单独合入。不修改任何文件。
 检查一律运行目标分支上的版本，避免分支上被改过的脚本替自己判 PASS。审核人直接用：
     git show origin/main:docs/agents/scripts/rule-check | python3 -
 （--from-base 是同义的快捷方式，但它本身由当前分支的脚本解释；审核时以上面的命令为准。）
@@ -97,6 +98,38 @@ def graph(text):
     return nodes, edges, used, gates, labels
 
 
+def existed_at(ref, path):
+    return subprocess.run(["git", "cat-file", "-e", f"{ref}:{path}"], capture_output=True).returncode == 0
+
+
+def pure_new_scenarios(path, base_ref):
+    """rule-regression.md 只追加新的 RG-* 行时，不算修改既有检查。
+
+    没有删行并不安全：往既有检查脚本里追加代码同样会改变行为。
+    这个例外只覆盖回归清单里全新的场景行，既有行被改或被删都不算。
+    """
+    if path != REG or not os.path.isfile(path):
+        return False
+    old_ids = {c[0] for c in table(show(base_ref, path), "场景") if c and c[0].startswith("RG-")}
+    added, removed = [], []
+    for line in git("diff", "-U0", base_ref, "--", path).splitlines():
+        if line.startswith(("+++", "---", "@@", "diff ", "index ", "\\")):
+            continue
+        if line.startswith("+"):
+            added.append(line[1:])
+        elif line.startswith("-"):
+            removed.append(line[1:])
+    if removed or not added:
+        return False
+    seen = set(old_ids)
+    for line in added:
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if not cells or not re.fullmatch(r"RG-[0-9A-Za-z]+", cells[0]) or cells[0] in seen:
+            return False
+        seen.add(cells[0])
+    return True
+
+
 def roster_only(path, mb):
     """该文件的改动是否只涉及名册表格行（数据，不是规则）。"""
     if path != ROSTER[0]:
@@ -151,11 +184,13 @@ def main():
         if os.path.isfile(path):
             changed[path] = (open(path, "rb").read().count(b"\n"), 0)
 
-    print("\n## 预算（当前工作区；取 base 与当前中较严的值）")
+    print("\n## 预算（当前工作区；取 base 尖端与当前中较严的值）")
     tracked = set(git("ls-files").split()) | set(git("ls-files", "--others", "--exclude-standard").split())
-    log_base = show(mb, LOG)
+    # 改动集合用 merge-base；当前生效的预算用 --base 尖端，再与候选工作区取更严的一边。
+    log_mb = show(mb, LOG)
+    log_tip = show(base, LOG)
     eff = {p: (l, b) for p, l, b in budgets(log_now)}
-    for p, l, b in budgets(log_base):
+    for p, l, b in budgets(log_tip):
         if p not in eff:
             warn.append(f"BUDGET-REMOVED：{p} 的预算行被删除；仍按 base 的 {l} 行/{b} 字节检查，删除预算需单独 MR 说明")
         eff[p] = (min(l, eff.get(p, (l, b))[0]), min(b, eff.get(p, (l, b))[1]))
@@ -211,7 +246,7 @@ def main():
     if touched_checks:
         warn.append("CHECKS-CHANGED：检查本身被修改（" + "、".join(touched_checks)
                     + "）；在 MR 中单独说明，不与放宽对应规则的改动混在一起，由 CODEOWNERS review")
-    old_b = {p: (l, b) for p, l, b in budgets(show(mb, LOG))}
+    old_b = {p: (l, b) for p, l, b in budgets(log_mb)}
     for p, l, b in budgets(log_now):
         if p in old_b and (l > old_b[p][0] or b > old_b[p][1]):
             warn.append(f"BUDGET-RAISED：{p} 预算从 {old_b[p][0]} 行/{old_b[p][1]} 字节提高到 {l}/{b}；需单独说明")
@@ -219,17 +254,24 @@ def main():
 
     print(f"\n## 流程图（{FLOW}）")
     flow_now = open(FLOW, encoding="utf-8").read() if os.path.exists(FLOW) else ""
-    if not flow_now:
+    flow_old = show(mb, FLOW)
+    # 从未有过流程图才跳过。删掉或清空已有的图时，按空图与旧图对照，不能直接 PASS。
+    if not flow_now.strip() and not flow_old.strip():
         print("无流程图")
     else:
+        if not flow_now.strip():
+            print("流程图已删除或为空（仍对照 merge-base 上的旧图）")
         nodes, edges, used, gates, labels = graph(flow_now)
         gb_now = {c[0]: int(c[1]) for c in table(log_now, "流程图预算") if len(c) > 1 and c[1].isdigit()}
-        gb_old = {c[0]: int(c[1]) for c in table(log_base, "流程图预算") if len(c) > 1 and c[1].isdigit()}
+        gb_tip = {c[0]: int(c[1]) for c in table(log_tip, "流程图预算") if len(c) > 1 and c[1].isdigit()}
+        gb_mb = {c[0]: int(c[1]) for c in table(log_mb, "流程图预算") if len(c) > 1 and c[1].isdigit()}
         counts = {"节点": len(nodes), "边": len(edges), "闸门": len(gates)}
         for k, n in counts.items():
-            cap = min(x for x in (gb_now.get(k), gb_old.get(k)) if x is not None) if (k in gb_now or k in gb_old) else None
-            if k in gb_old and k in gb_now and gb_now[k] > gb_old[k]:
-                warn.append(f"BUDGET-RAISED：流程图{k}预算从 {gb_old[k]} 提高到 {gb_now[k]}；仍按 {gb_old[k]} 检查，需单独 MR 说明")
+            present = [x for x in (gb_now.get(k), gb_tip.get(k)) if x is not None]
+            cap = min(present) if present else None
+            if k in gb_mb and k in gb_now and gb_now[k] > gb_mb[k]:
+                enforced = cap if cap is not None else gb_mb[k]
+                warn.append(f"BUDGET-RAISED：流程图{k}预算从 {gb_mb[k]} 提高到 {gb_now[k]}；仍按 {enforced} 检查，需单独 MR 说明")
             state = "ok" if cap is None or n <= cap else "OVER"
             print(f"{state}\t{k}\t{n}/{cap if cap is not None else '未设预算'}")
             if state == "OVER":
@@ -245,7 +287,7 @@ def main():
             print(f"{'ok' if ok else 'MISMATCH'}\t{g}\t{src}")
             if not ok:
                 fail.append(f"GRAPH-RULE-MISMATCH：{g} 的规则原文在 {src or '（未写出处）'} 中找不到；规则文字与流程图须同一 MR 一起改")
-        _, _, _, g_base, _ = graph(show(mb, FLOW))
+        _, _, _, g_base, _ = graph(flow_old)
         for g, c in sorted(g_base.items()):
             if g not in gates:
                 warn.append(f"GATE-REMOVED：删除了闸门 {g}（{c[1] if len(c) > 1 else ''}）；确认对应规则是有意删除，并跑相关回归场景；reviewer 在 MR 中写明接受理由")
@@ -280,8 +322,7 @@ def main():
                 msg = f"FLOW-MARK-MISSING：闸门 {g} 在规则出处 {src or '（未写）'} 中没有 `<!-- flow: {g} -->` 标记"
                 touched = FLOW in changed or src in changed
                 (fail if touched else warn).append(msg if touched else msg + "（本次未改动相关文件）")
-        flow_old = show(mb, FLOW)
-        if flow_old and flow_old != flow_now:
+        if flow_old.strip() and flow_old != flow_now:
             n0, e0, _, g0, l0 = graph(flow_old)
             dn = (nodes - n0, n0 - nodes)
             relabel = {n for n in nodes & n0 if labels.get(n) != l0.get(n)}
@@ -306,7 +347,13 @@ def main():
             if not others:
                 fail.append("流程图有改动，但没有对应的规则文字改动（team.md、issue-tracker.md 等）")
 
-    edited_checks = [p for p in touched_checks if changed[p][1] > 0]
+    # 既有检查的任何内容变化都算（追加也算）。只追加全新 RG-* 行是唯一例外。
+    edited_checks = []
+    for p in touched_checks:
+        adds, dels = changed[p]
+        if (adds == 0 and dels == 0) or not existed_at(mb, p) or pure_new_scenarios(p, mb):
+            continue
+        edited_checks.append(p)
     weakening = [p for p in rules if p not in touched_checks]
     if edited_checks and weakening:
         fail.append("既有检查（" + "、".join(edited_checks) + "）与规则文件在同一改动中被修改；修改检查本身要单独 MR")

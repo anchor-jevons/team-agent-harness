@@ -9,7 +9,8 @@ N 为陈旧天数，默认 7，与 docs/agents/issue-tracker.md 一致。成员 
 检查当前 HEAD（即将推送的内容）：
   FAIL STALE-BRANCH    当前分支（或其上游）是一张 in-progress 票的 Branch:，该票 Owner 不是你，且分支陈旧
                        （最近提交超过 N 天）或 Owner 不在 docs/agents/team.md 名册中（已离开）。
-  FAIL FROM-STALE      HEAD 包含上述分支上尚未进入目标分支的提交（从陈旧分支开出或合入了它）。
+  FAIL FROM-STALE      HEAD 与上述分支有相同提交，且这些提交还不在目标分支上（不要求该分支尖端是 HEAD 的祖先）。
+                       squash / cherry-pick 会生成新提交，原提交不在 HEAD 里时这里不会报 FAIL。
   FAIL JOURNAL-LESSONS 本次将推送的提交（相对远端同名分支，没有则相对目标分支）中新增或修改的 docs/journal/**.md 缺少 `## Lessons` 节或该节为空
                        （没有教训时写一行 `none`）。
   WARN OTHER-OWNER     当前分支的票 Owner 是名册中的其他成员：只有用户在当前会话明确要求接手该 MR 时才推送。
@@ -18,8 +19,10 @@ N 为陈旧天数，默认 7，与 docs/agents/issue-tracker.md 一致。成员 
   WARN FEATURE-MAP     分支（相对目标分支）改了源文件（文档、.scratch/、测试以外的文件），但没有改 docs/feature-map.md，
                        分支上改动的 ticket 也没有写 `涉及功能: none`。启发式提醒：改了用户可见行为就在同一 MR 更新对应条目；
                        没改就在 ticket 写 `涉及功能: none`。目标分支与 HEAD 都没有 docs/feature-map.md 时不检查。
-有 FAIL 时退出码为 1：不要推送，把输出报告给用户。陈旧分支只报告，由人决定改派或 dropped；
-新 Owner 从目标分支开新分支。本脚本不修改任何文件或分支。
+有 FAIL 时退出码为 1：不要推送，把输出报告给用户。陈旧或已离开成员的分支只报告。
+人要关闭、改派或标 dropped 时，从目标分支另开决定分支，只改这张票，经 MR 合入；不要把决定推到原分支上。
+新 Owner 再从目标分支开工。本脚本不修改任何文件或分支。
+FROM-STALE 只比较提交对象。squash 与 cherry-pick 生成的新提交认不出来，复用代码仍要在 MR 里说明来源。
 """
 import datetime as dt
 import re
@@ -28,10 +31,25 @@ import sys
 
 PREFIX = "refs/remotes/origin/"
 TICKET = re.compile(r"\.scratch/([^/]+)/issues/([^/]+\.md)")
+ROOT = subprocess.run(
+    ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True
+).stdout.strip()
 
 
 def git(*args, check=True):
-    return subprocess.run(["git", *args], capture_output=True, text=True, check=check).stdout
+    return subprocess.run(
+        ["git", "-C", ROOT, *args], capture_output=True, text=True, check=check
+    ).stdout
+
+
+def git_z(*args, check=True):
+    """路径清单必须 -z 再按 NUL 切开。只关 core.quotePath 仍会在空格处被 split 拆开。"""
+    raw = subprocess.run(["git", "-C", ROOT, *args], capture_output=True, check=check).stdout
+    if raw.endswith(b"\0"):
+        raw = raw[:-1]
+    if not raw:
+        return []
+    return [part.decode("utf-8", "surrogateescape") for part in raw.split(b"\0")]
 
 
 def usage(msg):
@@ -77,14 +95,27 @@ mine = {b for b in (cur, upstream.removeprefix("origin/") if upstream.startswith
 
 
 def ancestor(a, b):
-    return subprocess.run(["git", "merge-base", "--is-ancestor", a, b]).returncode == 0
+    return subprocess.run(
+        ["git", "-C", ROOT, "merge-base", "--is-ancestor", a, b]
+    ).returncode == 0
+
+
+def shares_unmerged(stale_ref, target_ref):
+    """HEAD 与陈旧分支共有、且目标分支达不到的提交。
+
+    只判断陈旧分支尖端是不是 HEAD 的祖先，会漏掉从该分支较早提交再开出的分支。
+    squash 和 cherry-pick 会写成新的提交对象，不在这个集合里。
+    """
+    on_head = set(git("rev-list", "HEAD", "--not", target_ref, check=False).split())
+    on_stale = set(git("rev-list", stale_ref, "--not", target_ref, check=False).split())
+    return bool(on_head & on_stale)
 
 
 for ref in refs:
     if ref == target:
         continue
     name = ref.removeprefix(PREFIX)
-    for path in git("ls-tree", "-r", "--name-only", "--full-tree", ref, "--", ".scratch").split():
+    for path in git_z("ls-tree", "-z", "-r", "--name-only", "--full-tree", ref, "--", ".scratch"):
         if path.startswith(".scratch/_done/") or not TICKET.fullmatch(path):
             continue
         hdr = dict(re.findall(r"^(Owner|Status|Branch): *(.*)$", git("show", f"{ref}:{path}"), re.M))
@@ -98,16 +129,16 @@ for ref in refs:
         stale = (today - tip).days > N or departed
         why = f"Owner {owner}{'（不在名册）' if departed else ''}，最近提交 {tip}"
         if stale and name in mine:
-            fails.append(f"STALE-BRANCH\t{name}\t{path}\t{why}：陈旧分支只报告，不在其上提交或推送；由人决定改派或 dropped，新 Owner 从目标分支开新分支")
-        elif stale and ancestor(ref, "HEAD") and not ancestor(ref, target):
-            fails.append(f"FROM-STALE\t{name}\t{path}\t{why}：HEAD 包含该分支未合入目标分支的提交；改从目标分支开分支，复用其中代码先向用户报告来源")
+            fails.append(f"STALE-BRANCH\t{name}\t{path}\t{why}：不要在该分支上提交或推送。关闭、改派或 dropped 请从目标分支另开决定分支，只改这张票后经 MR 合入（见 docs/agents/issue-tracker.md）")
+        elif stale and shares_unmerged(ref, target):
+            fails.append(f"FROM-STALE\t{name}\t{path}\t{why}：HEAD 与该分支有相同提交，且这些提交还不在目标分支上。改从目标分支开分支；squash/cherry-pick 生成的新提交检查不到，复用代码须在 MR 说明来源")
         elif not stale and name in mine:
             warns.append(f"OTHER-OWNER\t{name}\t{path}\t{why}：只有用户在当前会话明确要求接手该 MR 时才推送（见 docs/agents/team.md 的“接手”）")
 
 # 只看本次将推送的提交：远端已有同名分支时相对它，否则相对与目标分支的 merge-base
 pushed = PREFIX + cur if cur and PREFIX + cur in refs else ""
 since = git("merge-base", pushed, "HEAD", check=False).strip() if pushed else git("merge-base", target, "HEAD", check=False).strip()
-changed = git("diff", "--name-only", "--diff-filter=AM", f"{since}..HEAD", "--", "docs/journal").split() if since else []
+changed = git_z("diff", "-z", "--name-only", "--diff-filter=AM", f"{since}..HEAD", "--", "docs/journal") if since else []
 for path in changed:
     if not path.endswith(".md"):
         continue
@@ -121,7 +152,7 @@ for path in changed:
 others = set()
 if since:
     base_mb = git("merge-base", target, "HEAD", check=False).strip()
-    for path in git("diff", "--name-only", "--diff-filter=AM", f"{base_mb}..HEAD", "--", "docs/journal").split() if base_mb else []:
+    for path in git_z("diff", "-z", "--name-only", "--diff-filter=AM", f"{base_mb}..HEAD", "--", "docs/journal") if base_mb else []:
         parts = path.split("/")
         if len(parts) > 3 and parts[2] != member:
             others.add(parts[2])
@@ -133,9 +164,12 @@ FMAP = "docs/feature-map.md"
 NOT_SOURCE = re.compile(r"(^|/)(docs|\.scratch|\.agents|\.gitlab|\.github|tests?|__tests__|spec)/|^AGENTS\.md$|"
                         r"\.(md|txt|rst)$|(^|/)test_[^/]*$|_test\.[^/]*$|\.(test|spec)\.[^/]*$|(^|/)(LICENSE|CODEOWNERS)[^/]*$")
 base_mb = git("merge-base", target, "HEAD", check=False).strip()
-has_map = any(subprocess.run(["git", "cat-file", "-e", f"{r}:{FMAP}"], capture_output=True).returncode == 0 for r in (target, "HEAD"))
+has_map = any(
+    subprocess.run(["git", "-C", ROOT, "cat-file", "-e", f"{r}:{FMAP}"], capture_output=True).returncode == 0
+    for r in (target, "HEAD")
+)
 if base_mb and has_map:
-    branch_files = git("-c", "core.quotePath=false", "diff", "--name-only", f"{base_mb}..HEAD").splitlines()
+    branch_files = git_z("diff", "-z", "--name-only", f"{base_mb}..HEAD")
     sources = [p for p in branch_files if not NOT_SOURCE.search(p)]
     if sources and FMAP not in branch_files:
         none = False

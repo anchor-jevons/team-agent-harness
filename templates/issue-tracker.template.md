@@ -42,7 +42,7 @@
 
 开工第一步：在工作分支上只修改票头（`Status: in-progress`、`Branch:`、`Since:`），单独提交并推送，然后再开始实现。不要从 ready-for-agent 一步改到 implemented；没有这次推送，其他成员的状态查询看不到该票已开工。 <!-- flow: G3 -->
 
-`Since:` 记录开工或最近一次确认的日期（`YYYY-MM-DD`）。`Branch:` 超过 <N，团队填写，建议 7> 天没有新推送的 in-progress 票视为陈旧：状态查询时报告出来，由 Owner 重新确认（更新 `Since:`）或由人改派、改为 blocked/dropped。Agent 只报告陈旧，不接手、不改派：不在陈旧分支或 Owner 已不在名册的分支上提交或推送，不从它开出分支或合入它；用户要求接手时，也先报告，由人改派后新 Owner 从目标分支开新分支，需要复用其中代码时向用户说明来源并在 MR 中注明。推送前运行 `docs/agents/scripts/push-check --member <成员ID>`，它对这些情况报 FAIL。
+`Since:` 记录开工或最近一次确认的日期（`YYYY-MM-DD`）。`Branch:` 超过 <N，团队填写，建议 7> 天没有新推送的 in-progress 票视为陈旧：状态查询时报告出来。Agent 只报告，不接手、不改派：不在陈旧分支或 Owner 已不在名册的分支上提交或推送，不从它开出分支或合入它。人要关闭、改派或标 dropped 时不要推送该分支：从目标分支另开决定分支，只改这张票（dropped 写原因；改派把 Owner 改为新成员、`Status: ready-for-agent`、`Branch: None`，正文写 `决定人:`），经 MR 合入。合入后 `ticket-status` 不再把原分支的 in-progress 旧副本当作在途。`push-check` 仍对当前就在该分支上，或 HEAD 含有该分支上尚未进入目标分支的提交报 FAIL。比较的是提交对象：squash 或 cherry-pick 会生成新提交，检查不到，复用代码仍须在 MR 说明来源。用户要求接手时也先走上述决定，新 Owner 再从目标分支开工。推送前运行 `docs/agents/scripts/push-check --member <成员ID>`。
 
 状态写在分支上，main 上通常只能看到合入前的规划状态与合入后的结果；Owner 不是锁，Status 也不证明前置依赖已在当前分支可用。开工前核对依赖的实际实现。
 
@@ -56,7 +56,7 @@
 
 票头冲突：两条分支改同一张票时，Git 只在相邻行报冲突；不相邻的修改会干净合并，得到不一致的票头（例如改派后的 Owner 配上原负责人的 Branch/Since），冲突标记之外的字段也可能已被自动合并。合并或 rebase 涉及票头时核对整组字段：Owner 以人最近一次的决定为准，Status、Branch、Since 必须属于该 Owner 的工作；无法据此判断时不自行选择，先问用户。Handoff 冲突保留双方追加的行。Review 时检查票头字段与 Owner 一致。
 
-人的决定写在哪里：改派（Owner 变更）、dropped 等人的决定，写在**当前持有该票的分支**上，即票的 `Branch:` 所写、尚未合入的分支；票还没有开工分支或已合入目标分支时，经 MR 写在目标分支上。由接手者或 feature 负责人的 agent 按人的指示提交，并写明决定人。`Branch:` 始终是该票 MR 的源分支；接手者把修改推回原分支时不改 `Branch:`。票只存在于未合入的分支上（例如离开成员的分支）且被 dropped 时，把带 dropped 状态与原因的票随一个文档 MR 合入目标分支，使 main 上留有终态。
+人的决定写在哪里：分支尚未陈旧且 Owner 仍在名册时，改派或 dropped 写在该票 `Branch:` 所写、尚未合入的分支上。该分支已陈旧、Owner 已离开、票还没有开工分支或已合入目标分支时，从目标分支开决定 MR（见上），不要推送陈旧分支。由接手者或 feature 负责人的 agent 按人的指示提交，并写明决定人。非陈旧分支上，`Branch:` 仍是该票 MR 的源分支；接手者把修改推回原分支时不改 `Branch:`。
 
 ## 跨分支只读状态查询
 
@@ -73,7 +73,7 @@ git for-each-ref --sort=-committerdate \
 
 `'refs/remotes/origin/'` 是前缀匹配，包含 `feature/...` 等带 `/` 的分支；写成 `'refs/remotes/origin/*'` 会漏掉它们。第一条列出每个远端分支上的票头字段，第二条给出各分支最近提交日期，用于判断陈旧。旧分支上可能留有其他票的过时副本，以票的 `Branch:` 所写分支上的内容为准。
 
-`docs/agents/scripts/ticket-status [N]` 对同样的数据做汇总：每张 in-progress 票一行，列出 Owner、Branch、Since、分支最近提交日期，并标记 STALE 或分支未推送；目标分支上已 dropped 或已归档的票，其他分支上的旧 in-progress 副本不再报告。另外对仍为 ready-for-agent、但某个分支已有相关提交（分支名或领先目标分支的提交说明含该票的 rand6）的票输出 `READY-WITH-COMMITS` 提示，提醒补做开工提交；这只是启发式提示。结果只用于向用户报告，不用于认领、改派或修改其他分支；未推送的本地工作不会出现在结果中。
+`docs/agents/scripts/ticket-status [N]` 对同样的数据做汇总：每张 in-progress 票一行，列出 Owner、Branch、Since、分支最近提交日期，并标记 STALE 或分支未推送；目标分支上已 dropped、已归档，或在该分支分出之后改派了 Owner（正文含 `决定人:`）的票，其他分支上的旧 in-progress 副本不再报告。另外对仍为 ready-for-agent、但某个分支已有相关提交（分支名或领先目标分支的提交说明含该票的 rand6）的票输出 `READY-WITH-COMMITS` 提示，提醒补做开工提交；这只是启发式提示。结果只用于向用户报告，不用于认领、改派或修改其他分支；未推送的本地工作不会出现在结果中。
 
 ## 字段
 
