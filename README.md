@@ -2,7 +2,7 @@
 
 以 Matt Pocock skills 为基础，借鉴 Trellis 的团队协作做法，用 Git、Markdown 和现有 MR 流程共享开发规则、需求、决策与 AI 开发记录。
 
-**当前阶段：设计与参考模板。** 已完成三个独立 subagent 的方案审查、一次外部设计评审（2026-10），以及部分 Codex/Git 隔离验证；尚未实现或发布可安装的 `team-*` skills，尚未完成真实团队端到端试点。
+**当前阶段：设计与参考模板。** 已完成三个独立 subagent 的方案审查、一次外部设计评审（2026-10），以及部分 Codex/Git 隔离验证；已提供可安装的 `team-retro`，其余 `team-*` 阶段技能尚未实现，尚未完成真实团队端到端试点。
 
 ## 适用场景
 
@@ -28,7 +28,7 @@
 repo-name/
 ├── AGENTS.md
 ├── CONTEXT-MAP.md
-├── .agents/skills/                  # 团队适配版；本仓库尚未实现
+├── .agents/skills/                  # 团队适配版；已提供 team-retro，其余尚未实现
 ├── .scratch/
 │   ├── <feature-slug>-<rand6>/
 │   │   ├── spec.md                  # 按需
@@ -54,7 +54,7 @@ repo-name/
 
 ## 一键部署
 
-`install.sh` 把规则与模板按[目标路径](templates/README.md)部署到目标 Git 仓库：在新分支 `chore/agent-harness` 上提交（不推送），不覆盖已有文件，并在 `docs/agents/HARNESS-VERSION` 记录来源 ref 与提交 SHA。`team-*` skills 尚未实现，因此只部署规则与模板。
+`install.sh` 把规则与模板按[目标路径](templates/README.md)部署到目标 Git 仓库：在新分支 `chore/agent-harness` 上提交（不推送），不覆盖已有文件，并在 `docs/agents/HARNESS-VERSION` 记录来源 ref 与提交 SHA。部署包含已提供的 `team-retro`；其余 `team-*` 技能尚未实现。
 
 ```bash
 # 从本地克隆运行（目标默认为当前目录所在仓库，可在子目录运行）
@@ -90,7 +90,7 @@ curl -fsSL https://raw.githubusercontent.com/anchor-jevons/team-agent-harness/ma
 ## 目录内容
 
 - `docs/`：最终设计、独立审查、ADR、验证边界与来源。
-- `templates/`：待按目标项目调整的文档模板；不包含技能实现。
+- `templates/`：待按目标项目调整的文档模板，以及已提供的 `team-retro`；其余团队阶段技能尚未实现。
 - `install.sh`：把规则与模板部署到目标仓库的脚本，见[一键部署](#一键部署)。
 - `AGENTS.md`：维护本设计仓库的规则；目标工程的入口模板在 `templates/`。
 
